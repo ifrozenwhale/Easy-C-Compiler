@@ -1,5 +1,11 @@
 # 词法分析器
 
+## 运行
+
+使用`main.py`修改测试文件路径即可
+
+## 概况
+
 使用python实现一个简单的C子集的编译器
 
 该程序使用python语言实现了C语言子集的词法分析程序。具体实现了
@@ -7,7 +13,7 @@
 - 识别给定的C语言子集的单词符号，并以(token, attribute)的形式输出。
 - 包含int（10进制，8进制，16进制）,_+,-,*,/,=,==,>,<,<>,>=,<=,!,&&,||,**&,|**,if,**else,**while,get,put等**必做**和**可选项**。
 - 可以识别并跳过源程序的**（多个）**空白
-- 支持**预处理**，预处理将**跳过代码中的注释**（包括单行注释//和多行注释/**/），**可以选择进一步预删除部分字符（代码长度压缩**），包括删除多余的空格（连续空格只保留一个），删除换行符、制表符等。
+- 支持**预处理**，预处理将**跳过代码中的注释**（包括单行注释//和多行注释//），删除部分字符（代码长度压缩**），包括删除多余的空格（连续空格只保留一个），删除换行符、制表符等。
 - 支持检查代码中的**所有**词法错误，出现错误时将报告错误所在的**代码行**（如果进行了预处理，则代码行号失去意义）以及在所有字符中的位置索引。出现错误时，将**跳过**错误所在的单词。
 - 可以统计代码的行数，字符数以及单词频数。
 
@@ -96,8 +102,9 @@
 
 ## 结果
 
-![image-20210415030544524](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210415030544524.png)
+![image-20210418234250718](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210418234250718.png)
 
-![image-20210415030558459](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210415030558459.png)
+![image-20210418234306711](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210418234306711.png)
 
-![image-20210415030608262](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210415030608262.png)
+![image-20210418234326797](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210418234326797.png)
+
