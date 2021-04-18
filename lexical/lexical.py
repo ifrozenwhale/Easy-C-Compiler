@@ -78,7 +78,7 @@ class Lex():
         return self.symbol_idx-1
 
     def insert_token(self, token, attr):
-        if token == '':
+        if token in ['', ' ']:
             return
         if isinstance(attr, int):
             self.token_list.append((token, attr))
@@ -230,6 +230,7 @@ class Lex():
 
         def case10(tk, c):
             if c in self.border_char_list:
+
                 self.insert_token('LOGIC', tk)
                 return 0
             else:
@@ -240,6 +241,7 @@ class Lex():
             if c == '|':
                 return 12
             elif c in self.border_char_list:
+
                 self.insert_token('LOGIC', tk)
                 return 0
             else:
@@ -337,6 +339,8 @@ class Lex():
         slen = len(s)
 
         tk = ''
+        while(s[self.i] in ['\n', '\t', ' ']):
+            self.i += 1
         while self.i < slen:
             c = s[self.i]
             self.state = switch[self.state](tk, c)
@@ -344,11 +348,11 @@ class Lex():
             if self.state != 0:
                 self.i += 1
                 if self.state == -1:
-                    while s[self.i] not in ['\n', '\t', ' ']:
+                    while s[self.i] not in self.border_char_list:
                         if s[self.i] == '\n':
                             self.cur_line += 1
-
                         self.i += 1
+                    self.i -= 1
                     while s[self.i] in ['\n', '\t', ' ']:
                         if s[self.i] == '\n':
                             self.cur_line += 1
@@ -357,6 +361,7 @@ class Lex():
                     tk = ''
             else:
                 if c in self.border_char_list:
+                    self.insert_token(c, "-")
                     self.i += 1
                 tk = ''
                 while self.i < slen and s[self.i] in ['\n', '\t', ' ']:
@@ -399,7 +404,7 @@ class Lex():
 
 if __name__ == '__main__':
     # file = open("./test.cpp", encoding='utf8')
-    filepath = './test2.cpp'
+    filepath = './test.cpp'
     lex = Lex()
     lex.run(filepath, preprocess=False)
     lex.print_static_data()
