@@ -37,7 +37,7 @@ class Lex():
         nstar = (50-n)//2
         print('*'*nstar, info, '*'*nstar)
 
-    def filter(self, text, delete_otherchar=False):
+    def filter(self, text):
         p, i = 0, 0
         result = ''
         text_len = len(text)
@@ -57,15 +57,12 @@ class Lex():
                 print('/ mismatch')
                 exit(0)
 
-            if delete_otherchar:
-                while i < text_len-1 and text[i] == ' ' and text[i+1] == ' ':
-                    i += 1
-                if text[i] not in self.other_char_list:
-                    result += text[i]
-                    p += 1
-            else:
+            while i < text_len-1 and text[i] == ' ' and text[i+1] == ' ':
+                i += 1
+            if text[i] not in self.other_char_list:
                 result += text[i]
                 p += 1
+
             i += 1
         return result
 
@@ -206,7 +203,6 @@ class Lex():
                 self.insert_token('ASSIGN-OP', tk)
                 return 0
             else:
-
                 self.print_error("invalid relation operator ="+c)
                 return -1
 
@@ -342,6 +338,23 @@ class Lex():
         while(s[self.i] in ['\n', '\t', ' ']):
             self.i += 1
         while self.i < slen:
+            # 如果在这里处理注释的话
+            try:
+                if s[self.i] == '/' and s[self.i+1] == '/':
+                    while s[self.i] != '\n':
+                        self.i += 1
+                    self.cur_line += 1
+                    self.i += 1
+
+                if s[self.i] == '/' and s[self.i+1] == '*':
+                    while s[self.i] != '*' and s[self.i+1] != '/':
+                        if s[self.i] == '\n':
+                            self.cur_line += 1
+                        self.i += 1
+                    self.i += 2
+            except IndexError:
+                self.print_error('/ mismatch')
+
             c = s[self.i]
             self.state = switch[self.state](tk, c)
             tk += c
@@ -375,16 +388,14 @@ class Lex():
         self.print_line('origin data')
 
         print(text)
-
-        text = self.filter(text, delete_otherchar=preprocess)
-        self.print_line('pre processed data')
-
-        print(text)
+        if preprocess:
+            text = self.filter(text)
+            self.print_line('pre processed data')
+            print(text)
 
         print()
         self.scanner(text)
         self.print_line('lexical result')
-
         for elem in self.token_list:
             print(elem)
 
@@ -408,5 +419,5 @@ if __name__ == '__main__':
     # file = open("./test.cpp", encoding='utf8')
     filepath = './test.cpp'
     lex = Lex()
-    lex.run(filepath, preprocess=False)
+    lex.run(filepath, preprocess=True)
     lex.print_static_data()
