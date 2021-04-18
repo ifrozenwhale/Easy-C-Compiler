@@ -398,6 +398,8 @@ class Lex():
         for elem, cnt in counter.items():
             if elem[0] == 'ID':
                 print(f'({self.symbol_table_id[elem[1]]}, {cnt})')
+            elif elem[1] != '-':
+                print(f'({elem[0]}.{elem[1]}, {cnt})')
             else:
                 print(f'({elem[0]}, {cnt})')
 
