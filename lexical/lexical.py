@@ -1,5 +1,3 @@
-
-
 class Lex():
 
     def __init__(self):
@@ -16,9 +14,9 @@ class Lex():
         self.state = 0
         self.attr_dict = {}
         for e in self.border_char_list:
-            self.attr_dict[e] = '-'
+            self.attr_dict[e] = ''
         for e in self.reserved_words_list:
-            self.attr_dict[e] = '-'
+            self.attr_dict[e] = ''
         self.attr_dict['<'] = 'LT'
         self.attr_dict['<='] = 'LE'
         self.attr_dict['<>'] = 'NE'
@@ -30,12 +28,12 @@ class Lex():
         self.attr_dict['||'] = 'OR'
         self.attr_dict['|'] = 'BOR'
         self.attr_dict['=='] = 'EQ'
-        self.attr_dict['='] = '-'
+        self.attr_dict['='] = ''
 
     def print_line(self, info):
         n = len(info)
-        nstar = (50-n)//2
-        print('*'*nstar, info, '*'*nstar)
+        nstar = (50 - n) // 2
+        print('* ' * nstar, info, '* ' * nstar)
 
     def filter(self, text):
         p, i = 0, 0
@@ -45,19 +43,19 @@ class Lex():
             if i == text_len:
                 break
             try:
-                if text[i] == '/' and text[i+1] == '/':
+                if text[i] == '/' and text[i + 1] == '/':
                     while text[i] != '\n':
                         i += 1
-                if text[i] == '/' and text[i+1] == '*':
+                if text[i] == '/' and text[i + 1] == '*':
                     i += 2
-                    while text[i] != '*' and text[i+1] != '/':
+                    while text[i] != '*' and text[i + 1] != '/':
                         i += 1
                     i += 2
             except IndexError:
                 print('/ mismatch')
                 exit(0)
 
-            while i < text_len-1 and text[i] == ' ' and text[i+1] == ' ':
+            while i < text_len - 1 and text[i] == ' ' and text[i + 1] == ' ':
                 i += 1
             if text[i] not in self.other_char_list:
                 result += text[i]
@@ -72,7 +70,7 @@ class Lex():
         self.symbol_table[symbol] = self.symbol_idx
         self.symbol_table_id[self.symbol_idx] = symbol
         self.symbol_idx += 1
-        return self.symbol_idx-1
+        return self.symbol_idx - 1
 
     def insert_token(self, token, attr):
         if token in ['', ' ']:
@@ -80,7 +78,7 @@ class Lex():
         if isinstance(attr, int):
             self.token_list.append((token, attr))
         else:
-            self.token_list.append((token, self.attr_dict[attr]))
+            self.token_list.append((token, attr))
 
     def print_error(self, info):
         print(f'{info} at line {self.cur_line}, char at {self.i}')
@@ -115,7 +113,7 @@ class Lex():
             elif c == '0':
                 return 17
             else:
-                self.print_error("invalid symbol "+c)
+                self.print_error("invalid symbol  " + c)
                 return -1
 
         def case1(tk, c):
@@ -124,11 +122,11 @@ class Lex():
             else:
                 if c in self.border_char_list:
                     if tk in self.reserved_words_list:
-                        self.insert_token(tk, '-')
+                        self.insert_token(tk, '')
                         return 0
                     else:
                         idx = self.insert_symbol(tk)
-                        self.insert_token('ID', idx)
+                        self.insert_token('id', idx)
                         return 0
                 else:
                     self.print_error("invalid variable name")
@@ -138,7 +136,7 @@ class Lex():
             if c.isdigit():
                 return 3
             elif c in self.border_char_list:
-                self.insert_token('NUM', int(tk))
+                self.insert_token('digit', int(tk))
                 return 0
             else:
                 self.print_error('invalid number or variable name')
@@ -148,7 +146,7 @@ class Lex():
             if c.isdigit():
                 return 4
             elif c in self.border_char_list:
-                self.insert_token('NUM', int(tk))
+                self.insert_token('digit', int(tk))
                 return 0
             else:
                 self.print_error("invalid 10 dec base number express")
@@ -158,7 +156,7 @@ class Lex():
             if c.isdigit():
                 return 16
             elif c in self.border_char_list:
-                self.insert_token('NUM', int(tk))
+                self.insert_token('digit', int(tk))
                 return 0
             else:
                 self.print_error("invalid 10 dec base number express")
@@ -169,7 +167,7 @@ class Lex():
                 self.print_error('invalid int number(should in range 0-9999)')
                 return -1
             elif c in self.border_char_list:
-                self.insert_token('NUM', int(tk))
+                self.insert_token('digit', int(tk))
                 return 0
             else:
                 self.print_error("invalid 10 dec base number express")
@@ -193,7 +191,7 @@ class Lex():
                 self.insert_token('RELATION', tk)
                 return 0
             else:
-                self.print_error("invalid relation operator <"+c)
+                self.print_error("invalid relation operator < " + c)
                 return -1
 
         def case7(tk, c):
@@ -203,7 +201,7 @@ class Lex():
                 self.insert_token('ASSIGN-OP', tk)
                 return 0
             else:
-                self.print_error("invalid relation operator ="+c)
+                self.print_error("invalid relation operator = " + c)
                 return -1
 
         def case8(tk, c):
@@ -211,7 +209,7 @@ class Lex():
                 self.insert_token('RELATION', tk)
                 return 0
             else:
-                self.print_error("invalid relation operator =="+c)
+                self.print_error("invalid relation operator == " + c)
                 return -1
 
         def case9(tk, c):
@@ -221,7 +219,7 @@ class Lex():
                 self.insert_token('LOGIC', tk)
                 return 0
             else:
-                self.print_error("invalid logic operator &"+c)
+                self.print_error("invalid logic operator & " + c)
                 return -1
 
         def case10(tk, c):
@@ -230,18 +228,17 @@ class Lex():
                 self.insert_token('LOGIC', tk)
                 return 0
             else:
-                self.print_error("invalid logic operator &"+c)
+                self.print_error("invalid logic operator & " + c)
                 return -1
 
         def case11(tk, c):
             if c == '|':
                 return 12
             elif c in self.border_char_list:
-
                 self.insert_token('LOGIC', tk)
                 return 0
             else:
-                self.print_error("invalid logic operator |"+c)
+                self.print_error("invalid logic operator | " + c)
                 return -1
 
         def case12(tk, c):
@@ -250,7 +247,7 @@ class Lex():
                 self.insert_token('LOGIC', tk)
                 return 0
             else:
-                self.print_error("invalid logic operator |"+c)
+                self.print_error("invalid logic operator | " + c)
                 return -1
 
         def case13(tk, c):
@@ -258,7 +255,7 @@ class Lex():
                 self.insert_token('RELATION', tk)
                 return 0
             else:
-                self.print_error("invalid relation operator <"+c)
+                self.print_error("invalid relation operator < " + c)
                 return -1
 
         def case15(tk, c):
@@ -275,7 +272,7 @@ class Lex():
             elif c >= '1' and c <= '7':
                 return 18
             elif c in self.border_char_list:
-                self.insert_token('NUM', 0)
+                self.insert_token('digit', 0)
                 return 0
             else:
                 self.print_error('invalid number base expression')
@@ -285,7 +282,7 @@ class Lex():
             if c >= '1' and c <= '7':
                 return 18
             elif c in self.border_char_list:
-                self.insert_token('NUM', int(tk, 8))
+                self.insert_token('digit', int(tk, 8))
                 return 0
             else:
                 self.print_error('invalid 8 Oct base expression')
@@ -302,11 +299,12 @@ class Lex():
             if c.isdigit() or c >= 'a' and c <= 'f':
                 return 20
             elif c in self.border_char_list:
-                self.insert_token('NUM', int(tk, 16))
+                self.insert_token('digit', int(tk, 16))
                 return 0
             else:
                 self.print_error('invalid 16 Hex base expression')
                 return -1
+
         switch = {
             0: case0,
             1: case1,
@@ -335,26 +333,20 @@ class Lex():
         slen = len(s)
 
         tk = ''
-        while(s[self.i] in ['\n', '\t', ' ']):
+        while s[self.i] in ['\n', '\t', ' ']:
             self.i += 1
         while self.i < slen:
-            # 如果在这里处理注释的话
-            try:
-                if s[self.i] == '/' and s[self.i+1] == '/':
-                    while s[self.i] != '\n':
-                        self.i += 1
-                    self.cur_line += 1
+            # process comment
+            while self.i + 1 < slen and s[self.i] == '/' and s[self.i + 1] == '/':
+                # print(self.i, len(s))
+                while self.i < slen and s[self.i] != '\n':
+                    self.i += 1
+                self.i += 1
+                while self.i < slen and s[self.i] in ['\n', '\t', ' ']:
                     self.i += 1
 
-                if s[self.i] == '/' and s[self.i+1] == '*':
-                    while s[self.i] != '*' and s[self.i+1] != '/':
-                        if s[self.i] == '\n':
-                            self.cur_line += 1
-                        self.i += 1
-                    self.i += 2
-            except IndexError:
-                self.print_error('/ mismatch')
-
+            if self.i >= slen:
+                break
             c = s[self.i]
             self.state = switch[self.state](tk, c)
             tk += c
@@ -374,7 +366,7 @@ class Lex():
                     tk = ''
             else:
                 if c in self.border_char_list:
-                    self.insert_token(c, "-")
+                    self.insert_token(c, '')
                     self.i += 1
                 tk = ''
                 while self.i < slen and s[self.i] in ['\n', '\t', ' ']:
@@ -399,25 +391,42 @@ class Lex():
         for elem in self.token_list:
             print(elem)
 
+    def create_tokens(self, filename):
+        file = open(filename, encoding='utf8')
+        text = file.read()
+        self.scanner(text)
+        # create new token_list
+        tokens = []
+        for k, v in self.token_list:
+            if v == '':
+                tokens.append((k, ''))
+            elif k == 'id':
+                tokens.append((k, self.symbol_table_id[v]))
+            elif k == 'digit':
+                tokens.append((k, v))
+            else:
+                tokens.append((v, ''))
+
+        return tokens
+
     def print_static_data(self):
         self.print_line('statictics info')
-        print('[range: without comments]')
         print('total code lines', self.cur_line)
         print('total characters counts', self.i)
         from collections import Counter
         counter = Counter(self.token_list)
         for elem, cnt in counter.items():
-            if elem[0] == 'ID':
+            if elem[0] == 'id':
                 print(f'({self.symbol_table_id[elem[1]]}, {cnt})')
-            elif elem[1] != '-':
+            elif elem[1] != '':
                 print(f'({elem[0]}.{elem[1]}, {cnt})')
             else:
                 print(f'({elem[0]}, {cnt})')
 
 
 if __name__ == '__main__':
-    # file = open("./test.cpp", encoding='utf8')
+    # file = open("./test.cpp", encoding='utssf8')
     filepath = './test.cpp'
     lex = Lex()
-    lex.run(filepath, preprocess=True)
+    lex.run(filepath, preprocess=False)
     lex.print_static_data()
