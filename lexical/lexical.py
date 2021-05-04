@@ -4,7 +4,7 @@ class Lex():
         self.other_char_list = ['\n', '\t']
         self.border_char_list = ['+', '-', '*',
                                  '(', ')', '/', '{', '}', ';', ',', ' ', '\n', '\t']
-        self.reserved_words_list = ['int', 'bool',
+        self.reserved_words_list = ['int', 'bool','void','return',
                                     'while', 'if', 'else', 'put', 'get']
 
         self.token_list = []
@@ -73,7 +73,7 @@ class Lex():
         return self.symbol_idx - 1
 
     def insert_token(self, token, attr):
-        if token in ['', ' ']:
+        if token in ['', ' ', '\n']:
             return
         if isinstance(attr, int):
             self.token_list.append((token, attr))
