@@ -20,6 +20,7 @@
 int func(int t){
     return 2;
 }
+int a, b, c;
 void test();
 int main(){
     int num1, num2, op, ans;
