@@ -1,9 +1,36 @@
 import sys
 import re
+import pandas as pd
+import numpy as np
 
 sys.path.append('../lexical')
 from lexical import Lex
 from copy import deepcopy
+
+
+class Color:
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
+    @classmethod
+    def print_bold(self, x):
+        print(Color.BOLD + x + Color.END)
+
+    @classmethod
+    def red_bold(self, x):
+        return Color.RED + Color.BOLD + x + Color.END
+
+    @classmethod
+    def blue_underline(self, x):
+        return Color.BLUE + Color.UNDERLINE + x + Color.END
 
 
 def get_tokens(filename='../lexical/test.cpp'):
@@ -17,6 +44,55 @@ def get_test_tokens():
     tokens = get_tokens()
     tokens.append(('$', ''))
     return tokens
+
+
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.child = []
+
+    def add_child(self, child):
+        self.child.insert(0, child)
+
+
+class Tree:
+    def __init__(self, root=None):
+        self.root = root
+        self.info = []
+
+    def bfs(self):
+        queue = [self.root]
+        while len(queue) > 0:
+            cnt = len(queue)
+            tmp = []
+            while cnt > 0:
+                front = queue.pop(0)
+                tmp.append(front.data)
+                for node in front.child:
+                    queue.append(node)
+                cnt -= 1
+            print(tmp)
+
+    def print(self):
+        self.dfs_showdir(self.root, 0)
+
+    def save(self, save_path="./result/tree"):
+        fw = open(save_path, encoding='utf8', mode='w')
+        for i in self.info:
+            fw.write(i + '\n')
+        fw.close()
+
+    def dfs_showdir(self, node, depth):
+        if depth == 0:
+            print("root:[" + node.data + "]")
+        for item in node.child:
+            leaf = len(item.child) == 0
+            raw_info = '' if item.data == '#' else f' {item.data} @ {item.symbol}' if leaf else item.data
+            info = '' if item.data == '#' else f' {Color.red_bold(item.data)} {Color.blue_underline(str(item.symbol))}' if leaf else item.data
+            print("|      " * depth + "|--" + info)
+            self.info.append("|      " * depth + "|--" + raw_info)
+            if not leaf:
+                self.dfs_showdir(item, depth + 1)
 
 
 class Stack:
@@ -39,7 +115,7 @@ class Stack:
         return len(self.stack)
 
     def info(self):
-        return str(self.stack)
+        return str([e.data for e in self.stack])
 
     def end(self):
         return len(self.stack) == 1 and self.stack[0] == '$'
@@ -65,6 +141,12 @@ class Gram:
         self.init_follow()
         self.init_first_s()
         self.init_table()
+        self.tree = Tree()
+
+    def print_tree(self, save=None):
+        self.tree.print()
+        if save:
+            self.tree.save(save)
 
     def init_cfg(self, filepath):
         print('hello')
@@ -218,8 +300,19 @@ class Gram:
                 print(self.ANA_TABLE[NT][T], end='    ')
             print()
 
+    def save_table(self, save_path="./results/table.csv"):
+        header = ["non_terminal"] + list(list(self.ANA_TABLE.values())[0].keys())
+        df = pd.DataFrame(columns=header)
+        for NT, TL in self.ANA_TABLE.items():
+            line = list(TL.values())
+            line = [e if len(e) > 0 else '' for e in line]
+            df.loc[len(df)] = [NT] + line
+            # for T in TL:
+            #     print(self.ANA_TABLE[NT][T], end='    ')
+        df.to_csv(save_path, index=False)
+
     def print_cfg(self):
-        for idx, p in grammar.DFG_HASH.items():
+        for idx, p in self.DFG_HASH.items():
             print(idx, p[1], '->', p[2])
 
     def phrase(self):
@@ -227,18 +320,22 @@ class Gram:
         self.print_table()
         tokens = get_test_tokens()
         print(tokens)
+        self.tree.root = Node(self.START)
+        curr_node = self.tree.root
         stack = Stack()
-        stack.push('$')
-        stack.push(self.START)
+        stack.push(Node('$'))
+        stack.push(curr_node)
         i = 0
-        output_info = ''
-        output_flag = False
+
         while not stack.empty():
             print('[STACK] {:40}'.format(stack.info()), end='')
             print('[INPUT] {:40}'.format(tokens[i][0]), end='')
-            t = stack.top()
+            node_t = stack.top()
+            t = node_t.data
             if t in self.TERMINAL and t != '#' or t == '$':
                 if t == tokens[i][0]:
+                    # add token attribute
+                    node_t.symbol = tokens[i][1]
                     i += 1
                     print()
                     # print('[DEBUG] solve', t, 'now i = ', i)
@@ -250,23 +347,26 @@ class Gram:
                 ich = tokens[i][0]
                 table_item = self.ANA_TABLE[t][ich]
                 if len(self.ANA_TABLE[t][ich]) == 0:
-                    print(t,self.ANA_TABLE[t])
+                    print(t, self.ANA_TABLE[t])
                     self.error(i, 'in non terminal but empty')
                 stack.pop()
                 unique_dfg_id = int(list(table_item)[0])
-                dfg = self.DFG_HASH[unique_dfg_id][2]
-                for ch in dfg[::-1]:
+                _, dfg_l, dfg_r = self.DFG_HASH[unique_dfg_id]
+                curr_node = node_t
+                for ch in dfg_r[::-1]:
+                    ch_node = Node(ch)
+                    curr_node.add_child(ch_node)
                     if ch != '#':
-                        stack.push(ch)
+                        stack.push(ch_node)
                 print('[OUTPUT]', self.DFG_HASH[unique_dfg_id])
 
     def error(self, i, info):
-        print("\nerror takens", i, info)
+        print("\nerror happens", i, info)
         exit(-1)
 
 
 if __name__ == '__main__':
-    # grammar = Gram()
+    # grammar = Gram('test_cfg2.txt')
     grammar = Gram("./cfg_v6.txt")
     # print(grammar.NULLABLE)
     # grammar.print_cfg()
@@ -275,3 +375,5 @@ if __name__ == '__main__':
     # print(grammar.FIRST_S)
 
     grammar.phrase()
+    grammar.print_tree(save="./results/tree.txt")
+    grammar.save_table()
