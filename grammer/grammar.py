@@ -367,7 +367,7 @@ class Gram:
 
 if __name__ == '__main__':
     # grammar = Gram('test_cfg2.txt')
-    grammar = Gram("cfg_source/cfg_v6.txt")
+    grammar = Gram("cfg_resource/cfg_v6.txt")
     # print(grammar.NULLABLE)
     # grammar.print_cfg()
     # print(grammar.FIRST)
