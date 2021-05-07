@@ -79,6 +79,6 @@
 
     ![image-20210507025150612](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210507025150612.png)
 
-- [x] 重构某些数据结构，封装数据类型而不是使用`item[0]` `item[1]`进行访问
+- [ ] 重构某些数据结构，封装数据类型而不是使用`item[0]` `item[1]`进行访问
     
 
