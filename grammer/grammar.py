@@ -7,10 +7,15 @@ sys.path.append('../lexical')
 sys.path.append('../utils')
 from lexical import Lex
 from copy import deepcopy
-from utils.log import Log
+from log import Log
 
 logger = Log("./logs/log.txt")
-
+pd.set_option('display.max_columns', None)
+# 显示所有行
+pd.set_option('display.max_rows', None)
+# 设置value的显示长度为100，默认为50
+pd.set_option('max_colwidth', 200)
+pd.set_option('display.width', 5000)
 
 class Color:
     PURPLE = '\033[95m'
@@ -310,7 +315,7 @@ class Gram:
                 print(self.ANA_TABLE[NT][T], end='    ')
             print()
 
-    def save_table(self, save_path="./results/table.csv"):
+    def save_table(self, save_path="./results/table.csv",pr=False):
         header = ["non_terminal"] + list(list(self.ANA_TABLE.values())[0].keys())
         df = pd.DataFrame(columns=header)
         for NT, TL in self.ANA_TABLE.items():
@@ -319,6 +324,8 @@ class Gram:
             df.loc[len(df)] = [NT] + line
             # for T in TL:
             #     print(self.ANA_TABLE[NT][T], end='    ')
+        if pr:
+            print(df)
         df.to_csv(save_path, index=False)
 
     def print_cfg(self):
@@ -328,7 +335,7 @@ class Gram:
     def phrase(self, tokens):
         logger.debug('-' * 100)
         self.create_analysis_table()
-        self.print_table()
+        # self.print_table()
         self.tree.root = Node(self.START)
         curr_node = self.tree.root
         stack = Stack()
@@ -353,7 +360,7 @@ class Gram:
                     # print('[DEBUG] solve', t, 'now i = ', i)
                     stack.pop()
                 else:
-                    logger.error(f' at line {tokens[i][2]},  expected {t} but received {tokens[i][0]}, move pointer')
+                    logger.error(f'at line {tokens[i][2]},  expected {t} but received {tokens[i][0]}, move pointer')
                     # self.error(i, 'in terminal but mismatch')
                     stack.pop()
             else:
@@ -362,7 +369,7 @@ class Gram:
                 table_item = self.ANA_TABLE[t][ich]
                 if len(table_item) == 0:
                     # print(t, self.ANA_TABLE[t])
-                    print(tokens)
+                    # print(tokens)
                     logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, move pointer')
                     i += 1
                     continue
@@ -396,4 +403,4 @@ if __name__ == '__main__':
     tokens = get_test_tokens("../lexical/error_demo.cpp")
     grammar.phrase(tokens)
     grammar.print_tree(save="./results/tree.txt")
-    grammar.save_table()
+    grammar.save_table(pr=False)
