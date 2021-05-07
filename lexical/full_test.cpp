@@ -30,10 +30,11 @@ int main(){
     };
     if (op == 1) {
         ans = num1;
+        if (op <= 2) {
+            ans = num2 | num1;
+        };
     };
-    if (op <= 2) {
-        ans = num2 | num1;
-    };
+
     if (op - 3 == 1) {
         func(10);
     }else{

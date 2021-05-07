@@ -1,4 +1,4 @@
-class Lex():
+class Lex:
 
     def __init__(self):
         self.other_char_list = ['\n', '\t']
@@ -76,9 +76,9 @@ class Lex():
         if token in ['', ' ', '\n']:
             return
         if isinstance(attr, int):
-            self.token_list.append((token, attr))
+            self.token_list.append((token, attr, self.cur_line))
         else:
-            self.token_list.append((token, attr))
+            self.token_list.append((token, attr, self.cur_line))
 
     def print_error(self, info):
         print(f'{info} at line {self.cur_line}, char at {self.i}')
@@ -341,9 +341,12 @@ class Lex():
                 # print(self.i, len(s))
                 while self.i < slen and s[self.i] != '\n':
                     self.i += 1
+                self.cur_line += 1
                 self.i += 1
                 while self.i < slen and s[self.i] in ['\n', '\t', ' ']:
                     self.i += 1
+                    if s[self.i] == '\n':
+                        self.cur_line += 1
 
             if self.i >= slen:
                 break
@@ -397,15 +400,15 @@ class Lex():
         self.scanner(text)
         # create new token_list
         tokens = []
-        for k, v in self.token_list:
+        for k, v, pos in self.token_list:
             if v == '':
-                tokens.append((k, ''))
+                tokens.append((k, '', pos))
             elif k == 'id':
-                tokens.append((k, self.symbol_table_id[v]))
+                tokens.append((k, self.symbol_table_id[v], pos))
             elif k == 'digit':
-                tokens.append((k, v))
+                tokens.append((k, v, pos))
             else:
-                tokens.append((v, ''))
+                tokens.append((v, '', pos))
 
         return tokens
 
@@ -425,8 +428,8 @@ class Lex():
 
 
 if __name__ == '__main__':
-    # file = open("./test.cpp", encoding='utssf8')
-    filepath = './test.cpp'
+    # file = open("./full_test.cpp", encoding='utssf8')
+    filepath = 'full_test.cpp'
     lex = Lex()
     lex.run(filepath, preprocess=False)
     lex.print_static_data()
