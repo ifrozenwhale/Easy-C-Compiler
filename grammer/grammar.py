@@ -393,7 +393,7 @@ if __name__ == '__main__':
     # print(grammar.FIRST)
     # print(grammar.FOLLOW)
     # print(grammar.FIRST_S)
-    tokens = get_test_tokens("../lexical/full_test.cpp")
+    tokens = get_test_tokens("../lexical/error_demo.cpp")
     grammar.phrase(tokens)
     grammar.print_tree(save="./results/tree.txt")
     grammar.save_table()

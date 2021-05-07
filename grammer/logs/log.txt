@@ -1,0 +1,17 @@
+2021-05-07 Friday 14:35:50  log.py : [ERROR]  at line 2, cannot parse 程序 when receiving id, move pointer
+2021-05-07 Friday 14:35:50  log.py : [ERROR]  at line 2, cannot parse 程序 when receiving (, move pointer
+2021-05-07 Friday 14:35:50  log.py : [ERROR]  at line 2, cannot parse 函数参数实现或变量定义 when receiving ), move pointer
+2021-05-07 Friday 14:35:50  log.py : [ERROR]  at line 2, cannot parse 函数参数实现或变量定义 when receiving {, move pointer
+2021-05-07 Friday 14:35:50  log.py : [ERROR]  at line 3, cannot parse 函数参数实现或变量定义 when receiving return, move pointer
+2021-05-07 Friday 14:35:50  log.py : [ERROR]  at line 3, cannot parse 参数声明 when receiving digit, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 3, cannot parse 参数声明 when receiving +, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 3, cannot parse 参数声明 when receiving id, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 4, cannot parse 函数实现 when receiving }, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 5, cannot parse 函数实现 when receiving int, pop 函数实现
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 6, cannot parse 函数或声明列表 when receiving id, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 6, cannot parse 函数或声明列表 when receiving ;, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 7, cannot parse 参数声明 when receiving ;, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 8, cannot parse 赋初值 when receiving (, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 10, cannot parse 参数闭包 when receiving ;, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]  at line 10, cannot parse 参数闭包 when receiving id, move pointer
+2021-05-07 Friday 14:35:51  log.py : [ERROR]   at line 12,  expected { but received id, move pointer

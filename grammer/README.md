@@ -58,10 +58,18 @@
 
     ![image-20210507025506075](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210507025506075.png)
 
-- [ ] 错误处理
+- [x] 错误处理
 
     - [x] 错误识别
-    - [ ] 错误恢复
+    - [x] 错误恢复
+
+    ![image-20210507143613147](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210507143613147.png)
+
+- [x] 日志
+
+    - [x] 错误日志
+
+    ![image-20210507143645196](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210507143645196.png)
 
 - [x] 语法分析树
 
