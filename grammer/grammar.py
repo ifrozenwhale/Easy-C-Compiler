@@ -4,8 +4,12 @@ import pandas as pd
 import numpy as np
 
 sys.path.append('../lexical')
+sys.path.append('../utils')
 from lexical import Lex
 from copy import deepcopy
+from utils.log import Log
+
+logger = Log("./logs/log.txt")
 
 
 class Color:
@@ -21,35 +25,37 @@ class Color:
     END = '\033[0m'
 
     @classmethod
-    def print_bold(self, x):
+    def print_bold(cls, x):
         print(Color.BOLD + x + Color.END)
 
     @classmethod
-    def red_bold(self, x):
+    def red_bold(cls, x):
         return Color.RED + Color.BOLD + x + Color.END
 
     @classmethod
-    def blue_underline(self, x):
+    def blue_underline(cls, x):
         return Color.BLUE + Color.UNDERLINE + x + Color.END
 
 
-def get_tokens(filename='../lexical/test.cpp'):
+def __get_tokens(filename):
     lex = Lex()
     token_list = lex.create_tokens(filename=filename)
     return token_list
 
 
-def get_test_tokens():
-    # tokens = [['id', ''], ('+', ''), ('id', ''), ('*', ''), ('id', ''), ('$', '')]
-    tokens = get_tokens()
-    tokens.append(('$', ''))
+def get_test_tokens(filename='../lexical/full_test.cpp'):
+    # tokens = [('id', ''), ('+', ''), ('id', ''), ('*', ''), ('id', ''), ('$', '')]
+    # tokens = [('*','',1), ('id','',2), ('*','',3),('+','',4),('id','',5)] # error
+    tokens = __get_tokens(filename)
+    tokens.append(('$', '', ''))
     return tokens
 
 
 class Node:
-    def __init__(self, data):
+    def __init__(self, data, symbol=None):
         self.data = data
         self.child = []
+        self.symbol = symbol
 
     def add_child(self, child):
         self.child.insert(0, child)
@@ -233,6 +239,10 @@ class Gram:
                     if b != '#':
                         # print(p)
                         self.ANA_TABLE[A][b].add(idx)
+        for NT in self.NON_TERMINAL:
+            for b in self.FOLLOW[NT]:
+                if len(self.ANA_TABLE[NT][b]) == 0:
+                    self.ANA_TABLE[NT][b].add('synch')
 
     def init_follow(self):
         for N in self.NON_TERMINAL:
@@ -315,11 +325,10 @@ class Gram:
         for idx, p in self.DFG_HASH.items():
             print(idx, p[1], '->', p[2])
 
-    def phrase(self):
+    def phrase(self, tokens):
+        logger.debug('-' * 100)
         self.create_analysis_table()
         self.print_table()
-        tokens = get_test_tokens()
-        print(tokens)
         self.tree.root = Node(self.START)
         curr_node = self.tree.root
         stack = Stack()
@@ -328,6 +337,9 @@ class Gram:
         i = 0
 
         while not stack.empty():
+            if i >= len(tokens):
+                logger.error("illegal end of program")
+                return
             print('[STACK] {:40}'.format(stack.info()), end='')
             print('[INPUT] {:40}'.format(tokens[i][0]), end='')
             node_t = stack.top()
@@ -341,14 +353,23 @@ class Gram:
                     # print('[DEBUG] solve', t, 'now i = ', i)
                     stack.pop()
                 else:
-                    self.error(i, 'in terminal but mismatch')
+                    logger.error(f' at line {tokens[i][2]},  expected {t} but received {tokens[i][0]}, move pointer')
+                    # self.error(i, 'in terminal but mismatch')
+                    stack.pop()
             else:
                 # print('i=',i,'stack',stack.info())
                 ich = tokens[i][0]
                 table_item = self.ANA_TABLE[t][ich]
-                if len(self.ANA_TABLE[t][ich]) == 0:
-                    print(t, self.ANA_TABLE[t])
-                    self.error(i, 'in non terminal but empty')
+                if len(table_item) == 0:
+                    # print(t, self.ANA_TABLE[t])
+                    print(tokens)
+                    logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, move pointer')
+                    i += 1
+                    continue
+                if list(table_item)[0] == 'synch':
+                    logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, pop {t}')
+                    stack.pop()
+                    continue
                 stack.pop()
                 unique_dfg_id = int(list(table_item)[0])
                 _, dfg_l, dfg_r = self.DFG_HASH[unique_dfg_id]
@@ -360,20 +381,19 @@ class Gram:
                         stack.push(ch_node)
                 print('[OUTPUT]', self.DFG_HASH[unique_dfg_id])
 
-    def error(self, i, info):
-        print("\nerror happens", i, info)
-        exit(-1)
+    def error(self, l, i, info):
+        print(f"\n[ERROR] at line {l}, char at {i} of total, {info}")
 
 
 if __name__ == '__main__':
-    # grammar = Gram('test_cfg2.txt')
+    # grammar = Gram('test_cfg1.txt')
     grammar = Gram("cfg_resource/cfg_v6.txt")
     # print(grammar.NULLABLE)
     # grammar.print_cfg()
     # print(grammar.FIRST)
     # print(grammar.FOLLOW)
     # print(grammar.FIRST_S)
-
-    grammar.phrase()
+    tokens = get_test_tokens("../lexical/full_test.cpp")
+    grammar.phrase(tokens)
     grammar.print_tree(save="./results/tree.txt")
     grammar.save_table()
