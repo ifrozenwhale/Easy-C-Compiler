@@ -70,6 +70,7 @@
     - [x] 错误日志
 
     ![image-20210507143645196](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210507143645196.png)
+    
 
 - [x] 语法分析树
 
@@ -78,5 +79,6 @@
 
     ![image-20210507025150612](https://frozenwhale.oss-cn-beijing.aliyuncs.com/img/image-20210507025150612.png)
 
+- [ ] 重构某些数据结构，封装数据类型而不是使用`item[0]` `item[1]`进行访问
     
 
