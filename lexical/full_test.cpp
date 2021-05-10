@@ -24,7 +24,7 @@ int a, b, c;
 void test();
 int main(){
     int num1 = 1, num2 = 2, op, ans;
-    get(num1, num2, op);
+    ans = get(num1, num2, op);
     if (op == 0) {
         ans = num1 + num2;
     };

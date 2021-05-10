@@ -17,6 +17,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('max_colwidth', 200)
 pd.set_option('display.width', 5000)
 
+
 class Color:
     PURPLE = '\033[95m'
     CYAN = '\033[96m'
@@ -160,7 +161,7 @@ class Gram:
             self.tree.save(save)
 
     def init_cfg(self, filepath):
-        print('hello')
+        # print('hello')
         fr = open(filepath, encoding='utf8')
 
         idx = 0
@@ -315,7 +316,7 @@ class Gram:
                 print(self.ANA_TABLE[NT][T], end='    ')
             print()
 
-    def save_table(self, save_path="./results/table.csv",pr=False):
+    def save_table(self, save_path="./results/table.csv", pr=False):
         header = ["non_terminal"] + list(list(self.ANA_TABLE.values())[0].keys())
         df = pd.DataFrame(columns=header)
         for NT, TL in self.ANA_TABLE.items():
@@ -394,13 +395,13 @@ class Gram:
 
 if __name__ == '__main__':
     # grammar = Gram('test_cfg1.txt')
-    grammar = Gram("cfg_resource/cfg_v6.txt")
+    grammar = Gram("cfg_resource/cfg_v7.txt")
     # print(grammar.NULLABLE)
     # grammar.print_cfg()
     # print(grammar.FIRST)
     # print(grammar.FOLLOW)
     # print(grammar.FIRST_S)
-    tokens = get_test_tokens("../lexical/error_demo.cpp")
+    tokens = get_test_tokens("../lexical/full_test.cpp")
     grammar.phrase(tokens)
-    grammar.print_tree(save="./results/tree.txt")
-    grammar.save_table(pr=False)
+    # grammar.print_tree(save="./results/tree.txt")
+    # grammar.save_table(pr=False)
