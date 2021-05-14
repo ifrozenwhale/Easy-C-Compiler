@@ -23,7 +23,7 @@ class Log:
         logging.error(info)
 
     def waring(self, info):
-        logging.warning()
+        logging.warning(info)
 
     def info(self, info):
         logging.info(info)

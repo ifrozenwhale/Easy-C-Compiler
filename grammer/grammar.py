@@ -5,9 +5,10 @@ import numpy as np
 
 sys.path.append('../lexical')
 sys.path.append('../utils')
+from log import Log
 from lexical import Lex
 from copy import deepcopy
-from log import Log
+
 
 logger = Log("./logs/log.txt")
 pd.set_option('display.max_columns', None)
@@ -323,8 +324,6 @@ class Gram:
             line = list(TL.values())
             line = [e if len(e) > 0 else '' for e in line]
             df.loc[len(df)] = [NT] + line
-            # for T in TL:
-            #     print(self.ANA_TABLE[NT][T], end='    ')
         if pr:
             print(df)
         df.to_csv(save_path, index=False)
@@ -348,13 +347,12 @@ class Gram:
             if i >= len(tokens):
                 logger.error("illegal end of program")
                 return
-            print('[STACK] {:40}'.format(stack.info()), end='')
-            print('[INPUT] {:40}'.format(tokens[i][0]), end='')
+            print('[STACK] {:80}\t [INPUT] {:40}'.format(stack.info(), tokens[i][0]), end='\t')
+
             node_t = stack.top()
             t = node_t.data
             if t in self.TERMINAL and t != '#' or t == '$':
                 if t == tokens[i][0]:
-                    # add token attribute
                     node_t.symbol = tokens[i][1]
                     i += 1
                     print()
@@ -362,15 +360,11 @@ class Gram:
                     stack.pop()
                 else:
                     logger.error(f'at line {tokens[i][2]},  expected {t} but received {tokens[i][0]}, move pointer')
-                    # self.error(i, 'in terminal but mismatch')
                     stack.pop()
             else:
-                # print('i=',i,'stack',stack.info())
                 ich = tokens[i][0]
                 table_item = self.ANA_TABLE[t][ich]
                 if len(table_item) == 0:
-                    # print(t, self.ANA_TABLE[t])
-                    # print(tokens)
                     logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, move pointer')
                     i += 1
                     continue
@@ -396,12 +390,14 @@ class Gram:
 if __name__ == '__main__':
     # grammar = Gram('test_cfg1.txt')
     grammar = Gram("cfg_resource/cfg_v7.txt")
-    # print(grammar.NULLABLE)
+    print(grammar.NULLABLE)
     # grammar.print_cfg()
-    # print(grammar.FIRST)
-    # print(grammar.FOLLOW)
-    # print(grammar.FIRST_S)
+    print(grammar.FIRST)
+    print(grammar.FOLLOW)
+    print(grammar.FIRST_S)
+
     tokens = get_test_tokens("../lexical/full_test.cpp")
+    print(tokens)
     grammar.phrase(tokens)
-    # grammar.print_tree(save="./results/tree.txt")
-    # grammar.save_table(pr=False)
+    grammar.print_tree(save="./results/tree_test_full.txt")
+    grammar.save_table(pr=True)

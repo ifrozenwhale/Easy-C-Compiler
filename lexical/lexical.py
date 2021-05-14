@@ -2,9 +2,9 @@ class Lex:
 
     def __init__(self):
         self.other_char_list = ['\n', '\t']
-        self.border_char_list = ['+', '-', '*',
-                                 '(', ')', '/', '{', '}', ';', ',', ' ', '\n', '\t']
-        self.reserved_words_list = ['int', 'bool','void','return',
+        self.border_char_list = {'+', '-', '*',
+                                 '(', ')', '/', '{', '}', ';', ',', ' ', '\n', '\t'}
+        self.reserved_words_list = ['int', 'bool', 'void', 'return',
                                     'while', 'if', 'else', 'put', 'get']
 
         self.token_list = []
@@ -120,7 +120,7 @@ class Lex:
             if c.isalnum():
                 return 1
             else:
-                if c in self.border_char_list:
+                if self.in_border(c):
                     if tk in self.reserved_words_list:
                         self.insert_token(tk, '')
                         return 0
@@ -130,12 +130,13 @@ class Lex:
                         return 0
                 else:
                     self.print_error("invalid variable name")
+                    exit(-1)
                     return -1
 
         def case2(tk, c):
             if c.isdigit():
                 return 3
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('digit', int(tk))
                 return 0
             else:
@@ -145,7 +146,7 @@ class Lex:
         def case3(tk, c):
             if c.isdigit():
                 return 4
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('digit', int(tk))
                 return 0
             else:
@@ -155,7 +156,7 @@ class Lex:
         def case4(tk, c):
             if c.isdigit():
                 return 16
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('digit', int(tk))
                 return 0
             else:
@@ -166,7 +167,7 @@ class Lex:
             if c not in self.border_char_list:
                 self.print_error('invalid int number(should in range 0-9999)')
                 return -1
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('digit', int(tk))
                 return 0
             else:
@@ -176,7 +177,7 @@ class Lex:
         def case5(tk, c):
             if c in ['=', '>']:
                 return 13
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('RELATION', tk)
                 return 0
             else:
@@ -187,7 +188,7 @@ class Lex:
         def case6(tk, c):
             if c == '=':
                 return 15
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('RELATION', tk)
                 return 0
             else:
@@ -197,7 +198,7 @@ class Lex:
         def case7(tk, c):
             if c == '=':
                 return 8
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('ASSIGN-OP', tk)
                 return 0
             else:
@@ -205,7 +206,7 @@ class Lex:
                 return -1
 
         def case8(tk, c):
-            if c in self.border_char_list:
+            if self.in_border(c):
                 self.insert_token('RELATION', tk)
                 return 0
             else:
@@ -215,7 +216,7 @@ class Lex:
         def case9(tk, c):
             if c == '&':
                 return 10
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('LOGIC', tk)
                 return 0
             else:
@@ -223,7 +224,7 @@ class Lex:
                 return -1
 
         def case10(tk, c):
-            if c in self.border_char_list:
+            if self.in_border(c):
 
                 self.insert_token('LOGIC', tk)
                 return 0
@@ -234,7 +235,7 @@ class Lex:
         def case11(tk, c):
             if c == '|':
                 return 12
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('LOGIC', tk)
                 return 0
             else:
@@ -242,7 +243,7 @@ class Lex:
                 return -1
 
         def case12(tk, c):
-            if c in self.border_char_list:
+            if self.in_border(c):
 
                 self.insert_token('LOGIC', tk)
                 return 0
@@ -251,7 +252,7 @@ class Lex:
                 return -1
 
         def case13(tk, c):
-            if c in self.border_char_list:
+            if self.in_border(c):
                 self.insert_token('RELATION', tk)
                 return 0
             else:
@@ -259,7 +260,7 @@ class Lex:
                 return -1
 
         def case15(tk, c):
-            if c in self.border_char_list:
+            if self.in_border(c):
                 self.insert_token('RELATION', tk)
                 return 0
             else:
@@ -269,9 +270,9 @@ class Lex:
         def case17(tk, c):
             if c == 'x':
                 return 19
-            elif c >= '1' and c <= '7':
+            elif '1' <= c <= '7':
                 return 18
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('digit', 0)
                 return 0
             else:
@@ -279,9 +280,9 @@ class Lex:
                 return -1
 
         def case18(tk, c):
-            if c >= '1' and c <= '7':
+            if '1' <= c <= '7':
                 return 18
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('digit', int(tk, 8))
                 return 0
             else:
@@ -289,16 +290,16 @@ class Lex:
                 return -1
 
         def case19(tk, c):
-            if c.isdigit() or c >= 'a' and c <= 'f':
+            if c.isdigit() or 'a' <= c <= 'f':
                 return 20
             else:
                 self.print_error('invalid 16 Hex base expression')
                 return -1
 
         def case20(tk, c):
-            if c.isdigit() or c >= 'a' and c <= 'f':
+            if c.isdigit() or 'a' <= c <= 'f':
                 return 20
-            elif c in self.border_char_list:
+            elif self.in_border(c):
                 self.insert_token('digit', int(tk, 16))
                 return 0
             else:
@@ -351,7 +352,9 @@ class Lex:
             if self.i >= slen:
                 break
             c = s[self.i]
+            # print('char', c, 'state', self.state)
             self.state = switch[self.state](tk, c)
+
             tk += c
             if self.state != 0:
                 self.i += 1
@@ -426,10 +429,13 @@ class Lex:
             else:
                 print(f'({elem[0]}, {cnt})')
 
+    def in_border(self, c):
+        return c in self.border_char_list or c.isalnum() or c in ['=', '<', '>', '!', '&', '|']
+
 
 if __name__ == '__main__':
     # file = open("./full_test.cpp", encoding='utssf8')
-    filepath = 'full_test.cpp'
+    filepath = 'test2.cpp'
     lex = Lex()
     lex.run(filepath, preprocess=False)
-    lex.print_static_data()
+    # lex.print_static_data()
