@@ -388,16 +388,34 @@ class Gram:
 
 
 if __name__ == '__main__':
-    # grammar = Gram('test_cfg1.txt')
+    ###########################
+    # 1. 定义使用的文法
     grammar = Gram("cfg_resource/cfg_v7.txt")
+    # 打印 nullable集
     print(grammar.NULLABLE)
-    # grammar.print_cfg()
+    # 打印上下文无关文法 cfg
+    grammar.print_cfg()
+    # 打印文法的 first 集
     print(grammar.FIRST)
+    # 打印文法的 follow 集
     print(grammar.FOLLOW)
+    # 打印文法的 first_s 集
     print(grammar.FIRST_S)
 
-    tokens = get_test_tokens("../lexical/full_test.cpp")
+    ############################
+    # 2. 基于实验 1 给出 token_list
+    tokens = get_test_tokens("../lexical/error_demo.cpp")
+    # 打印源程序的 tokens
     print(tokens)
+
+    ############################
+    # 3. 基于预测分析表进行语法分析
+    # 进行分析
     grammar.phrase(tokens)
+
+    ############################
+    # 4. 输出语法分析结果
+    # 打印树，如果需要保存，设置save=filepath
     grammar.print_tree(save="./results/tree_test_full.txt")
+    # 保存预测分析表， 如果需要打印，设置pr=True
     grammar.save_table(pr=True)
