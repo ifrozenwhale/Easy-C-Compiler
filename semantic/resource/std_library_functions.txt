@@ -1,0 +1,3 @@
+void get int
+void get2 int int
+void put int

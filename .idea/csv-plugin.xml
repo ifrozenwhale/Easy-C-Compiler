@@ -3,7 +3,7 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
-        <entry key="\grammer\results\table.csv">
+        <entry key="\grammar\results\table.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
