@@ -2,6 +2,7 @@ import sys
 import re
 import pandas as pd
 import numpy as np
+import self as self
 
 sys.path.append('../lexical')
 sys.path.append('../utils')
@@ -21,23 +22,147 @@ pd.set_option('display.width', 5000)
 from enum import Enum
 
 
+def print_line(info):
+    n = len(info)
+    nstar = (100 - n) // 2
+    extra_star = (100 - n) % 2
+    print('*' * nstar, info, '*' * (nstar + extra_star))
+
+
 class TYPE(Enum):
     bool = "bool"
     int = "int"
     char = "char"
     void = "void"
 
+    def __repr__(self):
+        return 'TYPE.'+self._value_
+
 
 class ErrorType(Enum):
-    undefined = 0
-    multi_defined = 1
+    undefined = 0  # ok
+    already_defined_var = 1  # ok
+    already_defined_func = 2  # ok
+    uninitialized_var = 3  # ok
+    unsupported_operation = 4  # ok
+    incompatible_type = 5  # ok
+    mismatched_params = 6  # ok
+    mismatched_type = 7  # ok
+
+
+class UndefinedError:
+    def __init__(self, var_name):
+        self.var_name = var_name
+
+    def __repr__(self):
+        return f"undefined variable {self.var_name}"
+
+
+class UndefinedFuncError:
+    def __init__(self, func_name):
+        self.func_name = func_name
+
+    def __repr__(self):
+        return f"undefined function {self.func_name}"
+
+
+class AlreadyDefinedVar:
+    def __init__(self, var_name, first_defined_position):
+        self.var_name = var_name
+        self.first_defined_position = first_defined_position
+
+    def __repr__(self):
+        return f"variable {self.var_name} is already defined in position {self.first_defined_position}"
+
+
+class AlreadyDefinedFunc:
+    def __init__(self, func_name, first_defined_position):
+        self.func_name = func_name
+        self.first_defined_position = first_defined_position
+
+    def __repr__(self):
+        return f"function {self.func_name} is already defined in position {self.first_defined_position}"
+
+
+class UninitializedVar:
+    def __init__(self, var_name):
+        self.var_name = var_name
+
+    def __repr__(self):
+        return f"variable {self.var_name} is uninitialized but used here"
+
+
+class UnsupportedOperation:
+    def __init__(self, var_name, var_type, op):
+        self.var_name = var_name
+        self.var_type = var_type
+        self.op = op
+
+    def __repr__(self):
+        return f"variable {self.var_name} (self.var_type) don't support operation {self.op}"
+
+
+class IncompatibleType:
+    def __init__(self, var_name, var_type, rvalue_type):
+        self.var_name = var_name
+        self.var_type = var_type
+        self.rvalue_type = rvalue_type
+
+    def __repr__(self):
+        return f"variable {self.var_name} ({self.var_type}) cannot be assigned with type {self.rvalue_type}"
+
+
+class MismatchedParams:
+    def __init__(self, func_name, params, expected_params):
+        self.func_name = func_name
+        self.params = params
+        self.expected_params = expected_params
+
+    def __repr__(self):
+        return f"function {self.func_name} received params ({self.params}), expected params {self.expected_params}"
+
+
+class MismatchedType:
+    def __init__(self, var_type1, var_type2, op):
+        self.var_type1 = var_type1
+        self.var_type2 = var_type2
+        self.op = op
+
+    def __repr__(self):
+        return f"variable ({self.var_type1}) and variable ({self.var_type2}) don't " \
+               f"support operation {self.op} "
+
+
+class Error:
+    def __init__(self, err, position: tuple):
+        self.err = err
+        self.position = position
+
+    def __repr__(self):
+        return f"[ERROR] at position {self.position}, caused by: {str(self.err)}"
+
+
+class ErrorManager:
+    def __init__(self):
+        self.errors = []
+
+    def add_error(self, err: Error):
+        self.errors.append(err)
+
+    def count(self):
+        return len(self.errors)
+
+    def print(self):
+        for err in self.errors:
+            print(err)
 
 
 class Variable:
-    def __init__(self, tp=None, val=None, id=None):
+    def __init__(self, tp=None, val=None, id=None, pos=(0, 0)):
         self.id = id
         self.type = tp
         self.val = val
+        self.pos = pos
 
     def __add__(self, other):
         return Variable(self.type, self.val + other.val)
@@ -71,12 +196,6 @@ class Variable:
         return "({}{},{})".format(vid, self.type, self.val)
 
 
-class Error:
-    def __int__(self, tp, details):
-        self.type = tp
-        self.details = details
-
-
 class VariableManager:
     def __init__(self):
         self.variables = {}
@@ -97,41 +216,63 @@ class VariableManager:
         for scope in scope_list[::-1]:
             if self.contains(scope, v):
                 return scope, self.variables[scope][v]
-        print("undefined v {}.".format(v))
+
+        # err = Error(UndefinedError(v), (0, 1))
+        # error_manager.add_error(err)
         return -1
 
-    def add_variable(self, scope, v, tp):
+    def add_variable(self, scope, v, tp, pos=(0, 0)):
         if self.contains(scope, v):
-            print("v {} is already defined".format(v));
-            return -1
+            old = self.variables[scope][v]
+            err = Error(AlreadyDefinedVar(v, old.pos), pos)
+            error_manager.add_error(err)
+            return self.variables[scope][v]
         if scope not in self.variables:
             self.variables[scope] = {}
-        self.variables[scope][v] = Variable(tp=TYPE(tp), id=v)
-        return 0
+        self.variables[scope][v] = Variable(tp=TYPE(tp), id=v, pos=pos)
+        return None
 
-    def set_variable(self, scope, v, v_obj):
+    def set_variable(self, scope, v, v_obj, pos):
         old_v = self.get_variable(scope, v)
         if v_obj.type != old_v.type:
-            print("{} {} cannot assign\n".format(old_v, v_obj))
+            err = Error(IncompatibleType(v, old_v.type, v_obj.type), pos)
+            error_manager.add_error(err)
+            # print("{} {} cannot assign\n".format(old_v, v_obj))
             return -1
-        if not v_obj.val:
-            print("{} not initialized\n".format(v_obj))
+        if v_obj.val is None:
+            err = Error(UninitializedVar(v), pos)
+            error_manager.add_error(err)
+            # print("{} not initialized\n".format(v_obj))
             return -1
         old_v.val = v_obj.val
 
-    def op_variable(self, x, op, y):
+    def op_variable(self, x, op, y, pos):
         err_type = None
-        if not x.val:
-            print("{} not initialized".format(x))
+        if x.val is None:
+            err = Error(UninitializedVar(x.id), pos)
+            error_manager.add_error(err)
+            # print("{} not initialized".format(x))
             err_type = 1
-        if not y.val:
-            print("{} not initialized".format(y))
+        if y.val is None:
+            err = Error(UninitializedVar(x.id), pos)
+            error_manager.add_error(err)
+            # print("{} not initialized".format(y))
             err_type = 1
         if x.type != y.type:
-            print("cannot op \n")
+            err = Error(MismatchedType(x.type, y.type, op), pos)
+            error_manager.add_error(err)
+            # print("cannot op \n")
             err_type = 2
         if err_type:
             return None
+        # valid type check
+        # check bool
+        if x.type == TYPE.bool:
+            if op in ['+', '-', '*']:
+                err = Error(UnsupportedOperation(x.id, x.type, op), pos)
+                error_manager.add_error(err)
+                # print("type {} cannot operator {}".format(x.type, op))
+                return None
         if op == '+':
             return x + y
         elif op == '-':
@@ -182,7 +323,8 @@ class FunctionManager:
 
     def add_func(self, ret_type, func_name, params):
         if func_name in self.func_map:
-            print("function {} is already defined".format(func_name))
+            err = Error(AlreadyDefinedFunc(func_name, (0, 1)))
+            error_manager.add_error(err)
             return -1
         self.func_map[func_name] = Function(ret_type, func_name, params)
 
@@ -190,17 +332,27 @@ class FunctionManager:
         ret = []
         for func in self.func_map.values():
             ret.append(str(func))
-        return str(ret)
+        return '\n'.join(ret)
+
     def get(self, func_name):
         if func_name in self.func_map:
             return self.func_map[func_name]
-        print(f"function {func_name} undefined")
+        err = Error(UndefinedFuncError(func_name))
+        error_manager.add_error(err)
         return None
-    def params_match(self, func_name, params):
+
+    def params_match(self, func_name, params, pos):
         func = self.func_map[func_name]
         std_params = [e[0] for e in func.params]
-        print(std_params,params)
-        return std_params == params
+        # print(std_params, params)
+        if std_params == params:
+            return True
+
+        err = Error(MismatchedParams(func_name, params, std_params), pos)
+        error_manager.add_error(err)
+        return False
+
+
 class ScopeManager:
     def __init__(self):
         self.scopes = []
@@ -234,6 +386,7 @@ def pr_child(node):
 class Semantic:
     def __init__(self, tree):
         self.tree = tree
+        self.error_manager = ErrorManager()
         self.variable_manager = VariableManager()
         self.function_manager = FunctionManager()
         self.scope_manager = ScopeManager()
@@ -242,8 +395,6 @@ class Semantic:
     def run(self):
         self.tree.print()
         self.proc_program(self.tree.root)
-        print(self.variable_manager)
-        print(self.function_manager)
 
     def proc_program(self, root):
         self.scope_manager.set_global(0)
@@ -262,26 +413,27 @@ class Semantic:
 
     def proc_type_var(self, node):
         tp = self.proc_type(node.child[0])
-        var = self.proc_var(node.child[1])
-        self.variable_manager.add_variable(self.scope_manager.cur, var, tp)
+        var, pos = self.proc_var(node.child[1])
+        self.variable_manager.add_variable(self.scope_manager.cur, var, tp, pos)
+
         return tp, var
 
     def proc_type(self, node):
         return node.child[0].data
 
     def proc_var(self, node):
-        if node.child[0].data == '标识符':
-            sym = self.proc_user_symbol(node.child[0])
+        if node.child[0].data == '标志符':
+            sym, pos = self.proc_user_symbol(node.child[0])
         else:
-            sym = self.proc_system_symbol(node.child[0])
-        return sym
+            sym, pos = self.proc_system_symbol(node.child[0])
+        return sym, pos
 
     def proc_user_symbol(self, node):
-        return node.child[0].symbol
+        return node.child[0].symbol, node.child[0].pos
 
     def proc_system_symbol(self, node):
         # 标准库函数
-        return node.child[0].symbol
+        return node.child[0].data, node.child[0].pos
 
     def proc_param_impl_or_var_dec(self, node, tp, var):
         if node.child[0].data == '(':
@@ -304,9 +456,8 @@ class Semantic:
             if child.data == ';':
                 break
             elif child.data == '变量':
-                var_name = self.proc_var(child)
-                self.variable_manager.add_variable(self.scope_manager.cur, var_name, tp)
-                return
+                var_name, pos = self.proc_var(child)
+                self.variable_manager.add_variable(self.scope_manager.cur, var_name, tp, pos)
             elif child.data == '全局变量闭包':
                 self.proc_global_var_closure(child, tp)
 
@@ -315,15 +466,14 @@ class Semantic:
         if node.child[0].is_valid():
             tp, var = self.proc_dec(node.child[0])
             params.append((TYPE(tp), var))
-
             params = self.proc_dec_closure(node.child[1], params)
 
         return params
 
     def proc_dec(self, node):
         tp = self.proc_type(node.child[0])
-        var_name = self.proc_var(node.child[1])
-        self.variable_manager.add_variable(self.scope_manager.cur, var_name, tp)
+        var_name, pos = self.proc_var(node.child[1])
+        self.variable_manager.add_variable(self.scope_manager.cur, var_name, tp, pos)
         self.proc_init_value(node.child[2], var_name)
         return TYPE(tp), var_name
 
@@ -332,7 +482,7 @@ class Semantic:
             v_obj = self.proc_rvalue(node.child[1])
             # 赋值
             if v_obj:
-                self.assign_value(v, v_obj)
+                self.assign_value(v, v_obj, node.child[0].pos)
         else:
             return
 
@@ -353,7 +503,7 @@ class Semantic:
     def proc_item(self, node, item):
         if node.child[0].is_valid():
             v_obj = self.proc_factor_item(node.child[1])
-            item = self.variable_manager.op_variable(item, node.child[0].data, v_obj)
+            item = self.variable_manager.op_variable(item, node.child[0].data, v_obj, node.child[0].pos)
             item = self.proc_item(node.child[2], item)
             return item
         return item
@@ -367,17 +517,22 @@ class Semantic:
         elif node.child[0].data == '数字':
             num = self.proc_digit(node.child[0])
             return Variable(TYPE.int, num)
+        elif node.child[0].data == '布尔值':
+            bool_value = self.proc_bool_value(node.child[0])
+            return Variable(TYPE.bool, bool_value)
         elif node.child[0].data == '变量':
-            var_name = self.proc_var(node.child[0])
+            var_name, pos = self.proc_var(node.child[0])
             if not node.child[1].child[0].is_valid():
                 if not self.var_defined(var_name):
                     return None
+
                 _, v_obj = self.find_near_variable(var_name)
                 return v_obj
+
             else:
                 v_obj_list = self.proc_func_call_param(node.child[1])
                 # TODO 处理函数调用结果计算
-                print('v_obj_list', v_obj_list)
+                # print('v_obj_list', v_obj_list)
                 func_name = var_name
                 func = self.function_manager.get(func_name)
                 if not func:
@@ -385,17 +540,15 @@ class Semantic:
                 # 确定参数类型是否匹配
                 params_list = [e.type for e in v_obj_list]
 
-                if not self.function_manager.params_match(func_name, params_list):
-                    print(f"{func_name} parameter mis match")
+                if not self.function_manager.params_match(func_name, params_list, pos):
+                    # print(f"{func_name} parameter mis match")
                     return None
-
                 return Variable(tp=func.ret_type)
-
 
     def proc_factor_exp_closure(self, node, factor_exp):
         if node.child[0].is_valid():
             v_obj = self.proc_factor_exp(node.child[1])
-            factor_exp = self.variable_manager.op_variable(factor_exp, node.child[0].data, v_obj)
+            factor_exp = self.variable_manager.op_variable(factor_exp, node.child[0].data, v_obj, node.child[0].pos)
             factor_exp = self.proc_factor_exp_closure(node.child[2], factor_exp)
             return factor_exp
         else:
@@ -418,10 +571,12 @@ class Semantic:
 
     def proc_param(self, node):
         if node.child[0].data == '标志符':
-            var_name = self.proc_user_symbol(node.child[0])
+            var_name, pos = self.proc_user_symbol(node.child[0])
             scope, v_obj = self.find_near_variable(var_name)
             return v_obj
         elif node.child[0].data == '数字':
+            return self.proc_digit(node.child[0])
+        elif node.child[0].data == '布尔值':
             return self.proc_digit(node.child[0])
 
     def proc_param_closure(self, node, v_obj_list):
@@ -470,14 +625,17 @@ class Semantic:
         return self.variable_manager.find_variable(self.scope_manager.scopes, val_name) != -1
 
     def proc_assign_func(self, node):
-        var_name = self.proc_var(node.child[0])
+        var_name, pos = self.proc_var(node.child[0])
         # 判断定义
-        if not self.var_defined(var_name):
-            return None
+        if node.child[1].child[0].data == '=':
+            if not self.var_defined(var_name):
+                err = Error(UndefinedError(var_name), pos)
+                error_manager.add_error(err)
+                return None
         self.proc_assign_or_func_call(node.child[1], var_name)
 
     def proc_while_loop(self, node):
-        self.proc_logic_op(node.child[2])
+        self.proc_logic_exp(node.child[2])
         self.scope_manager.go_scope()
         self.proc_func_body(node.child[-2])
         self.scope_manager.out_scope()
@@ -503,22 +661,20 @@ class Semantic:
         self.proc_multi_var_dec_closure(node.child[2], tp)
 
     def proc_multi_var_dec(self, node, tp):
-        var = self.proc_var(node.child[0])
-        self.variable_manager.add_variable(self.scope_manager.cur, var, tp)
-
+        var, pos = self.proc_var(node.child[0])
+        self.variable_manager.add_variable(self.scope_manager.cur, var, tp, pos)
         self.proc_init_value(node.child[1], var)
 
-    def assign_value(self, var_name, v_obj):
+    def assign_value(self, var_name, v_obj, pos):
         target_scope, _ = self.variable_manager.find_variable(self.scope_manager.scopes, var_name)
-        self.variable_manager.set_variable(target_scope, var_name, v_obj)
+        self.variable_manager.set_variable(target_scope, var_name, v_obj, pos)
 
     def proc_assign_or_func_call(self, node, var_name):
         if node.child[0].data == '=':
             v_obj = self.proc_rvalue(node.child[1])
             if v_obj:
-                self.assign_value(var_name, v_obj)
+                self.assign_value(var_name, v_obj, node.child[0].pos)
         else:
-            # TODO func call
             self.proc_param_list(node.child[1])
 
     def proc_dec_closure(self, node, param_list):
@@ -533,9 +689,9 @@ class Semantic:
             self.proc_exp(node.child[1])
         else:
             v_obj1 = self.proc_exp(node.child[0])
-            op = self.proc_logic_op(node.child[1])
+            op, pos = self.proc_logic_op(node.child[1])
             v_obj2 = self.proc_exp(node.child[2])
-            self.variable_manager.op_variable(v_obj1, op, v_obj2)
+            self.variable_manager.op_variable(v_obj1, op, v_obj2, pos)
         pass
 
     def proc_else_stmt(self, node):
@@ -550,7 +706,7 @@ class Semantic:
         return
 
     def proc_logic_op(self, node):
-        return node.child[0].data
+        return node.child[0].data, node.child[0].pos
 
     def init_function_manager(self):
         # add std library functions
@@ -562,6 +718,21 @@ class Semantic:
             func_params = data[2:]
             self.function_manager.add_func(ret_type, func_name, func_params)
 
+    def print_function_table(self):
+        print_line("function table")
+        print(self.function_manager)
+        print_line("end")
+        print()
+
+    def print_variable_table(self):
+        print_line("variable table")
+        print(self.variable_manager)
+        print_line("end")
+        print()
+
+    def proc_bool_value(self, node):
+        return node.child[0].data
+
 
 def get_easy_tokens():
     tokens = [('id', '1'), ('+', ''), ('id', '2'), ('*', ''), ('id', '3'), ('$', '')]
@@ -571,8 +742,8 @@ def get_easy_tokens():
 
 def test():
     lex = Lex()
-
     tokens = get_easy_tokens()
+
     grammar = Gram("./resource/cfg.txt")
 
     grammar.parse(tokens, pr=True)
@@ -597,15 +768,22 @@ def test():
     semantic.dfs(tree.root)
 
 
+# 全局变量
+error_manager = ErrorManager()
+
 if __name__ == '__main__':
     # test()
-
     lex = Lex()
 
     tokens = get_test_tokens("../lexical/easy_test.cpp")
+    print(tokens)
     grammar = Gram("../grammar/cfg_resource/cfg_v7.txt")
 
     grammar.parse(tokens, pr=False)
     #
     semantic = Semantic(grammar.tree)
     semantic.run()
+
+    semantic.print_variable_table()
+    semantic.print_function_table()
+    error_manager.print()

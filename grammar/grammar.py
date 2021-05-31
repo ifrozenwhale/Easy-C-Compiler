@@ -59,10 +59,11 @@ def get_test_tokens(filename='../lexical/full_test.cpp'):
 
 
 class Node:
-    def __init__(self, data, symbol=None):
+    def __init__(self, data, symbol=None, pos=None):
         self.data = data
         self.child = []
         self.symbol = symbol
+        self.pos = pos
 
     def __repr__(self):
         return "data: {} symbol: {} child_size: {}".format(self.data, self.symbol, len(self.child))
@@ -76,6 +77,7 @@ class Node:
     def is_valid(self):
 
         return self.data != '#'
+
 class Tree:
     def __init__(self, root=None):
         self.root = root
@@ -362,6 +364,7 @@ class Gram:
             if t in self.TERMINAL and t != '#' or t == '$':
                 if t == tokens[i][0]:
                     node_t.symbol = tokens[i][1]
+                    node_t.pos = tokens[i][2]
                     i += 1
                     if pr: print()
                     # print('[DEBUG] solve', t, 'now i = ', i)
@@ -373,11 +376,13 @@ class Gram:
                 ich = tokens[i][0]
                 table_item = self.ANA_TABLE[t][ich]
                 if len(table_item) == 0:
-                    logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, move pointer')
+                    # logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, pop {t}')
+                    self.proc_parse_error(tokens[i], t)
                     i += 1
                     continue
                 if list(table_item)[0] == 'synch':
-                    logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, pop {t}')
+                    self.proc_parse_error(tokens[i], t)
+                    # logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, pop {t}')
                     stack.pop()
                     continue
                 stack.pop()
@@ -393,6 +398,18 @@ class Gram:
 
     def error(self, l, i, info):
         print(f"\n[ERROR] at line {l}, char at {i} of total, {info}")
+
+    def get_valid_token(self, nt):
+        res = []
+        for k, v in self.ANA_TABLE[nt].items():
+            if v and list(v)[0] != 'synch':
+                res.append(k)
+
+        return res
+    def proc_parse_error(self, token, nt):
+        # [(]<参数声明>[)]<函数实现>
+        logger.error(f'at position {token[2]}, when parsing {nt}, expected {self.get_valid_token(nt)}, but received [{token[0]}]')
+
 
 
 if __name__ == '__main__':
@@ -419,11 +436,11 @@ if __name__ == '__main__':
     ############################
     # 3. 基于预测分析表进行语法分析
     # 进行分析
-    grammar.parse(tokens)
+    grammar.parse(tokens,pr=False)
 
     ############################
     # 4. 输出语法分析结果
     # 打印树，如果需要保存，设置save=filepath
-    grammar.print_tree(save="./results/tree_test_full.txt")
+    # grammar.print_tree(save="./results/tree_test_full.txt")
     # 保存预测分析表， 如果需要打印，设置pr=True
-    grammar.save_table(pr=True)
+    # grammar.save_table(pr=True)

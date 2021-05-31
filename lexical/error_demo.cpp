@@ -1,5 +1,5 @@
 //输入数据num1,num2,op，根据op确定操作进行运算，最后输出运算结果ans
-func(int t){  // 缺少函数类型声明
+int func(int t){
     return (2 + t) // 缺少分号
 }
 int a, int b; // 重复类型声明
@@ -22,6 +22,8 @@ int main(){
     }else{
         ans = 15 + 2;
     }
+    ans = (2 + 3;
+    ans = 2 3;
+    ans = (2 + );
     put(ans);
-    void wrongFunc(); // 不允许嵌套定义
 }

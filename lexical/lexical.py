@@ -5,7 +5,7 @@ class Lex:
         self.border_char_list = {'+', '-', '*',
                                  '(', ')', '/', '{', '}', ';', ',', ' ', '\n', '\t'}
         self.reserved_words_list = ['int', 'bool', 'void', 'return',
-                                    'while', 'if', 'else', 'put', 'get']
+                                    'while', 'if', 'else', 'put', 'get', 'true', 'false']
 
         self.token_list = []
         self.symbol_table = {}
@@ -76,9 +76,9 @@ class Lex:
         if token in ['', ' ', '\n']:
             return
         if isinstance(attr, int):
-            self.token_list.append((token, attr, self.cur_line))
+            self.token_list.append((token, attr, (self.cur_line, self.cur_row)))
         else:
-            self.token_list.append((token, attr, self.cur_line))
+            self.token_list.append((token, attr, (self.cur_line, self.cur_row)))
 
     def print_error(self, info):
         print(f'{info} at line {self.cur_line}, char at {self.i}')
@@ -331,23 +331,30 @@ class Lex:
 
         self.i = 0
         self.cur_line = 1
+        self.cur_row = 1
         slen = len(s)
 
         tk = ''
         while s[self.i] in ['\n', '\t', ' ']:
             self.i += 1
+            self.cur_row += 1
         while self.i < slen:
             # process comment
             while self.i + 1 < slen and s[self.i] == '/' and s[self.i + 1] == '/':
                 # print(self.i, len(s))
                 while self.i < slen and s[self.i] != '\n':
                     self.i += 1
+                    self.cur_row += 1
                 self.cur_line += 1
+                self.cur_row = 1
                 self.i += 1
+                self.cur_row += 1
                 while self.i < slen and s[self.i] in ['\n', '\t', ' ']:
                     self.i += 1
+                    self.cur_row += 1
                     if s[self.i] == '\n':
                         self.cur_line += 1
+                        self.cur_row = 1
 
             if self.i >= slen:
                 break
@@ -358,27 +365,35 @@ class Lex:
             tk += c
             if self.state != 0:
                 self.i += 1
+                self.cur_row += 1
                 if self.state == -1:
                     while s[self.i] not in self.border_char_list:
                         if s[self.i] == '\n':
                             self.cur_line += 1
+                            self.cur_row = 1
                         self.i += 1
+                        self.cur_row += 1
                     self.i -= 1
+                    self.cur_row -= 1
                     while s[self.i] in ['\n', '\t', ' ']:
                         if s[self.i] == '\n':
                             self.cur_line += 1
+                            self.cur_row = 1
                         self.i += 1
+                        self.cur_row += 1
                     self.state = 0
                     tk = ''
             else:
                 if c in self.border_char_list:
                     self.insert_token(c, '')
                     self.i += 1
+                    self.cur_row += 1
                 tk = ''
                 while self.i < slen and s[self.i] in ['\n', '\t', ' ']:
                     if s[self.i] == '\n':
                         self.cur_line += 1
                     self.i += 1
+                    self.cur_row += 1
 
     def run(self, filename, preprocess=False):
         file = open(filename, encoding='utf8')
