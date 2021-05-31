@@ -15,8 +15,8 @@ int main(){
     v = 1;
     // a = m;
     int d = 5; // re defined
-    b = 1;
-    c = 2;
+    b = 2;
+    c = 3;
     a = add(b, c); // 正常函数调用
     x = add(b, c); // 赋值类型不匹配（bool-int)
     a = add(b, b, c); // 参数数目不匹配
@@ -26,5 +26,7 @@ int main(){
         x = false;
         x = x + x; // bool 不能进行计算
     }
+    a = c * (2 + b) * 10; // should be 120
+    b = c * 2 + b * 10; // should be 6 + 20 = 26
     return 0;
 }
