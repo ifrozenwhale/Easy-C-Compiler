@@ -19,11 +19,13 @@ int main(){
     };
     if (op - 3 == 1) {
         func(10);
-    }else{
+    } else {
         ans = 15 + 2;
     }
     ans = (2 + 3;
     ans = 2 3;
     ans = (2 + );
     put(ans);
+    int innerFunc(); // 不可以嵌套定义
+    return 0;
 }

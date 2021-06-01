@@ -4,7 +4,7 @@ class Lex:
         self.other_char_list = ['\n', '\t']
         self.border_char_list = {'+', '-', '*',
                                  '(', ')', '/', '{', '}', ';', ',', ' ', '\n', '\t'}
-        self.reserved_words_list = ['int', 'bool', 'void', 'return',
+        self.reserved_words_list = ['int', 'bool', 'void', 'return','struct',
                                     'while', 'if', 'else', 'put', 'get', 'true', 'false']
 
         self.token_list = []
@@ -338,6 +338,9 @@ class Lex:
         while s[self.i] in ['\n', '\t', ' ']:
             self.i += 1
             self.cur_row += 1
+            if s[self.i] == '\n':
+                self.cur_line += 1
+                self.cur_row = 1
         while self.i < slen:
             # process comment
             while self.i + 1 < slen and s[self.i] == '/' and s[self.i + 1] == '/':
@@ -392,6 +395,7 @@ class Lex:
                 while self.i < slen and s[self.i] in ['\n', '\t', ' ']:
                     if s[self.i] == '\n':
                         self.cur_line += 1
+                        self.cur_row = 1
                     self.i += 1
                     self.cur_row += 1
 
@@ -450,7 +454,7 @@ class Lex:
 
 if __name__ == '__main__':
     # file = open("./full_test.cpp", encoding='utssf8')
-    filepath = 'test2.cpp'
+    filepath = 'struct_test.cpp'
     lex = Lex()
     lex.run(filepath, preprocess=False)
     # lex.print_static_data()

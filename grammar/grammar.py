@@ -383,6 +383,7 @@ class Gram:
                 if list(table_item)[0] == 'synch':
                     self.proc_parse_error(tokens[i], t)
                     # logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, pop {t}')
+
                     stack.pop()
                     continue
                 stack.pop()
@@ -408,14 +409,18 @@ class Gram:
         return res
     def proc_parse_error(self, token, nt):
         # [(]<参数声明>[)]<函数实现>
-        logger.error(f'at position {token[2]}, when parsing {nt}, expected {self.get_valid_token(nt)}, but received [{token[0]}]')
+        if nt == '赋初值' and token[0] == '(':
+            logger.error(
+                f'at position {token[2]}, when parsing {nt}, expected {self.get_valid_token(nt)}, but received [{token[0]}] (Nested definitions are not allowed)')
+        else:
+            logger.error(f'at position {token[2]}, when parsing {nt}, expected {self.get_valid_token(nt)}, but received [{token[0]}]')
 
 
 
 if __name__ == '__main__':
     ###########################
     # 1. 定义使用的文法
-    grammar = Gram("cfg_resource/cfg_v7.txt")
+    grammar = Gram("cfg_resource/cfg_v8.txt")
     # 打印 nullable集
     print(grammar.NULLABLE)
     # 打印上下文无关文法 cfg
@@ -429,14 +434,14 @@ if __name__ == '__main__':
 
     ############################
     # 2. 基于实验 1 给出 token_list
-    tokens = get_test_tokens("../lexical/error_demo.cpp")
+    tokens = get_test_tokens("../lexical/struct_test.cpp")
     # 打印源程序的 tokens
     print(tokens)
 
     ############################
     # 3. 基于预测分析表进行语法分析
     # 进行分析
-    grammar.parse(tokens,pr=False)
+    grammar.parse(tokens, pr=True)
 
     ############################
     # 4. 输出语法分析结果

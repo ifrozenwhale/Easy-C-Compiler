@@ -34,9 +34,10 @@ class TYPE(Enum):
     int = "int"
     char = "char"
     void = "void"
+    struct = "struct"
 
     def __repr__(self):
-        return 'TYPE.'+self._value_
+        return 'TYPE.' + self._value_
 
 
 class ErrorType(Enum):
@@ -302,6 +303,9 @@ class VariableManager:
             res.append(str(v_obj))
         return "\n".join(res)
 
+    def set_struct_field(self, cur, var_name, var_list, pos):
+        self.variables[cur][var_name] = var_list
+
 
 class Function:
     def __init__(self):
@@ -408,8 +412,11 @@ class Semantic:
             self.proc_func_or_dec_list(node.child[1])
 
     def proc_func_or_dec(self, node):
-        tp, var = self.proc_type_var(node.child[0])
-        self.proc_param_impl_or_var_dec(node.child[1], tp, var)
+        if node.child[0].data == '类型变量':
+            tp, var = self.proc_type_var(node.child[0])
+            self.proc_param_impl_or_var_dec(node.child[1], tp, var)
+        else:
+            self.proc_struct_field_stmt(node.child[0])
 
     def proc_type_var(self, node):
         tp = self.proc_type(node.child[0])
@@ -447,6 +454,9 @@ class Semantic:
 
             # 要进入代码段了
             self.proc_func_impl(node.child[3])
+        elif node.child[0].data == '{':
+            # 表示处理结构体数据
+            self.proc_struct_field(node.child[1], var, node.child[0].pos)
         else:
             # print(node.child)
             self.proc_global_var_closure(node.child[0], tp)
@@ -613,6 +623,8 @@ class Semantic:
             self.proc_empty_stmt(node.child[0])
         elif node.child[0].data == 'return语句':
             self.proc_return_stmt(node.child[0])
+        elif node.child[0].data == '结构体域声明语句':
+            self.proc_struct_field_stmt(node.child[0])
         elif not node.child[0].is_valid():
             return
         self.proc_func_body_closure(node.child[1])
@@ -733,6 +745,38 @@ class Semantic:
     def proc_bool_value(self, node):
         return node.child[0].data
 
+    def proc_struct_field(self, node, var_name, pos):
+        var_list = []
+        var_list = self.proc_struct_filed_list(node.child[0], var_list)
+        # print(var_list)
+        # 得到了结构体域变proc_struct_field量列表后，加入到变量表中
+        self.variable_manager.add_variable(self.scope_manager.cur, var_name, TYPE.struct, pos);
+        # 对于结构体而言，值是多个变量
+        self.set_struct_field(var_name, var_list, pos)
+
+    def proc_struct_filed_list(self, node, var_list):
+        if node.child[0].is_valid():
+            # print(node)
+            var_type, var_name = self.proc_struct_field_var(node.child[0])
+            var_list.append((var_type, var_name))
+            self.proc_struct_filed_list(node.child[1], var_list)
+            return var_list
+        return var_list
+
+    def proc_struct_field_var(self, node):
+        var_type = self.proc_type(node.child[0])
+        var_name = self.proc_user_symbol(node.child[1])
+        return var_type, var_name
+
+    def set_struct_field(self, var_name, var_list, pos):
+        self.variable_manager.set_struct_field(self.scope_manager.cur, var_name, var_list, pos)
+
+    def proc_struct_field_stmt(self, node):
+        var_name, pos = self.proc_user_symbol(node.child[1])
+        self.proc_struct_field(node.child[3], var_name, pos)
+
+    
+
 
 def get_easy_tokens():
     tokens = [('id', '1'), ('+', ''), ('id', '2'), ('*', ''), ('id', '3'), ('$', '')]
@@ -777,9 +821,9 @@ if __name__ == '__main__':
 
     tokens = get_test_tokens("../lexical/easy_test.cpp")
     print(tokens)
-    grammar = Gram("../grammar/cfg_resource/cfg_v7.txt")
+    grammar = Gram("../grammar/cfg_resource/cfg_v8.txt")
 
-    grammar.parse(tokens, pr=False)
+    grammar.parse(tokens, pr=True)
     #
     semantic = Semantic(grammar.tree)
     semantic.run()

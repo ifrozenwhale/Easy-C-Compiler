@@ -1,5 +1,11 @@
 bool x, y, z;
 void test(int a, bool b);
+// 定义全局的结构体
+struct Course{
+    int sid;
+    int credit;
+    bool necessary;
+};
 int add(int a, int b){
     int d = a + b;
     return d;
@@ -28,5 +34,11 @@ int main(){
     }
     a = c * (2 + b) * 10; // should be 120
     b = c * 2 + b * 10; // should be 6 + 20 = 26
+    struct Student{
+        int sid; // 和 struct Course 重名
+        int a; // 和 a 重名
+        bool x; // 和 x 重名
+        int gender; // 不重名
+    };
     return 0;
 }
