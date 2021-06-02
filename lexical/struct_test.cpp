@@ -13,5 +13,8 @@ int main(){
     struct Student stu;
     stu.id = 1;
     stu.gender = false;
+    struct Course cor;
+    cor.id = false;
+    cor.name = 0;
     return 0;
 }

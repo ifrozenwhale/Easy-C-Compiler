@@ -12,6 +12,7 @@ from copy import deepcopy
 from log import Log
 from grammar import Gram, get_test_tokens
 from error import *
+
 logger = Log("./logs/log.txt")
 pd.set_option('display.max_columns', None)
 # 显示所有行
@@ -28,7 +29,6 @@ def print_line(info):
     extra_star = (100 - n) % 2
     print('*' * nstar, info, '*' * (nstar + extra_star))
 
-
 class TYPE(Enum):
     bool = "bool"
     int = "int"
@@ -39,12 +39,14 @@ class TYPE(Enum):
     def __repr__(self):
         return 'TYPE.' + self._value_
 
+
 class Variable:
-    def __init__(self, tp=None, val=None, id=None, pos=(0, 0)):
+    def __init__(self, tp=None, val=None, id=None, pos=(0, 0), struct_type=None):
         self.id = id
         self.type = tp
         self.val = val
         self.pos = pos
+        self.struct_type = struct_type
 
     def __add__(self, other):
         return Variable(self.type, self.val + other.val)
@@ -72,11 +74,19 @@ class Variable:
 
     def __ge__(self, other):
         return Variable(TYPE.bool, self.val >= other.val)
-
+    def __or__(self, other):
+        return Variable(TYPE.bool, self.val or other.val)
+    def __and__(self, other):
+        return Variable(TYPE.bool, self.val and other.val)
     def __repr__(self):
         vid = self.id + ',' if self.id else ''
-        return "({}{},{})".format(vid, self.type, self.val)
+        st = ' ' + self.struct_type + ',' if self.struct_type else ''
+        return "({}{}{},{})".format(vid, self.type, st, self.val)
 
+    def bit_and(self, other):
+        return Variable(TYPE.int, self.val & other.val)
+    def bit_or(self, other):
+        return Variable(TYPE.int, self.val | other.val)
 
 class VariableManager:
     def __init__(self):
@@ -100,7 +110,7 @@ class VariableManager:
                 return scope, self.variables[scope][v]
         return -1
 
-    def add_variable(self, scope, v, tp, pos=(0, 0)):
+    def add_variable(self, scope, v, tp, pos=(0, 0),struct_type=None):
         if self.contains(scope, v):
             old = self.variables[scope][v]
             err = Error(AlreadyDefinedVar(v, old.pos), pos)
@@ -108,7 +118,7 @@ class VariableManager:
             return self.variables[scope][v]
         if scope not in self.variables:
             self.variables[scope] = {}
-        self.variables[scope][v] = Variable(tp=TYPE(tp), id=v, pos=pos)
+        self.variables[scope][v] = Variable(tp=TYPE(tp), id=v, pos=pos,struct_type=struct_type)
         return None
 
     def set_variable(self, scope, v, v_obj, pos):
@@ -124,6 +134,7 @@ class VariableManager:
             # print("{} not initialized\n".format(v_obj))
             return -1
         old_v.val = v_obj.val
+
 
     def check_struct_field(self, scope, struct_name):
         if not self.contains(scope, struct_name):
@@ -162,6 +173,13 @@ class VariableManager:
                 error_manager.add_error(err)
                 # print("type {} cannot operator {}".format(x.type, op))
                 return None
+        if x.type == TYPE.int:
+            # if op in ['&', '|']:
+            if op in []:
+                err = Error(UnsupportedOperation(x.id, x.type, op), pos)
+                error_manager.add_error(err)
+                # print("type {} cannot operator {}".format(x.type, op))
+                return None
         if op == '+':
             return x + y
         elif op == '-':
@@ -184,6 +202,10 @@ class VariableManager:
             return x or y
         elif op == '&&':
             return x and y
+        elif op == '&':
+            return x.bit_and(y)
+        elif op == '|':
+            return x.bit_or(y)
 
     def __str__(self):
         res = []
@@ -194,16 +216,34 @@ class VariableManager:
     def set_struct_field(self, cur, var_name, var_list, pos):
         self.variables[cur][var_name] = var_list
 
+    def set_struct_attribute(self, cur, scopes, var_name, attribute, v_obj, pos):
+        _, stu = self.find_variable(scopes, var_name)
+        stu_type = stu.struct_type
+        # check whether to assign
+        scope, field_list = self.find_variable(scopes, stu_type)
+        for t in field_list:
+            if t[1][0] == attribute:
+                if t[0] == v_obj.type:
+                    if self.variables[cur][var_name].val is None:
+                        self.variables[cur][var_name].val = {}
+                    self.variables[cur][var_name].val[attribute] = v_obj
+                    return
+                else:
+                    err = Error(IncompatibleType(f'{var_name}.{attribute}', t[0], v_obj.type), pos)
+                    error_manager.add_error(err)
+                    return
+
+        err = Error(UndefinedError(f'{var_name}.{attribute}'), pos)
+        error_manager.add_error(err)
+        return
+
 
 class Function:
-    def __init__(self):
-        self.ret_type = None
-        self.params = []
-
-    def __init__(self, ret_type, name, params):
+    def __init__(self, ret_type, name, params,pos=None):
         self.ret_type = ret_type
         self.name = name
         self.params = params
+        self.pos = pos
 
     def __repr__(self):
         return "{} {} {}".format(self.ret_type, self.name, str(self.params))
@@ -213,12 +253,13 @@ class FunctionManager:
     def __init__(self):
         self.func_map = {}
 
-    def add_func(self, ret_type, func_name, params):
+    def add_func(self, ret_type, func_name, params, pos=None):
         if func_name in self.func_map:
-            err = Error(AlreadyDefinedFunc(func_name, (0, 1)))
+            first_pos = self.func_map[func_name].pos
+            err = Error(AlreadyDefinedFunc(func_name, first_pos), pos)
             error_manager.add_error(err)
             return -1
-        self.func_map[func_name] = Function(ret_type, func_name, params)
+        self.func_map[func_name] = Function(ret_type, func_name, params, pos)
 
     def __repr__(self):
         ret = []
@@ -226,10 +267,10 @@ class FunctionManager:
             ret.append(str(func))
         return '\n'.join(ret)
 
-    def get(self, func_name):
+    def get(self, func_name, pos):
         if func_name in self.func_map:
             return self.func_map[func_name]
-        err = Error(UndefinedFuncError(func_name))
+        err = Error(UndefinedFuncError(func_name), pos)
         error_manager.add_error(err)
         return None
 
@@ -307,9 +348,8 @@ class Semantic:
 
     def proc_type_var(self, node):
         tp = self.proc_type(node.child[0])
-        var, pos = self.proc_var(node.child[1])
+        var, pos, attribute = self.proc_var(node.child[1])
         self.variable_manager.add_variable(self.scope_manager.cur, var, tp, pos)
-
         return tp, var
 
     def proc_type(self, node):
@@ -317,13 +357,23 @@ class Semantic:
 
     def proc_var(self, node):
         if node.child[0].data == '标志符':
-            sym, pos = self.proc_user_symbol(node.child[0])
+            sym, pos, attribute = self.proc_user_symbol(node.child[0])
         else:
+            attribute = None
             sym, pos = self.proc_system_symbol(node.child[0])
-        return sym, pos
+        return sym, pos, attribute
 
     def proc_user_symbol(self, node):
-        return node.child[0].symbol, node.child[0].pos
+        var_name, pos = node.child[0].symbol, node.child[0].pos
+        attribute = self.proc_symbol_attribute(node.child[1])
+        if not attribute:
+            return var_name, pos, None
+        return var_name, pos, attribute
+
+    def proc_symbol_attribute(self, node):
+        if node.child[0].is_valid():
+            return node.child[1].symbol
+        return None
 
     def proc_system_symbol(self, node):
         # 标准库函数
@@ -336,8 +386,7 @@ class Semantic:
             self.scope_manager.go_scope()
             # print('cur', self.scope_manager.cur, end='\n')
             params = self.proc_param_dec(node.child[1])
-
-            self.function_manager.add_func(TYPE(tp), var, params)
+            self.function_manager.add_func(TYPE(tp), var, params, node.child[0].pos)
 
             # 要进入代码段了
             self.proc_func_impl(node.child[3])
@@ -351,7 +400,7 @@ class Semantic:
             if child.data == ';':
                 break
             elif child.data == '变量':
-                var_name, pos = self.proc_var(child)
+                var_name, pos, _ = self.proc_var(child)
                 self.variable_manager.add_variable(self.scope_manager.cur, var_name, tp, pos)
             elif child.data == '全局变量闭包':
                 self.proc_global_var_closure(child, tp)
@@ -367,7 +416,7 @@ class Semantic:
 
     def proc_dec(self, node):
         tp = self.proc_type(node.child[0])
-        var_name, pos = self.proc_var(node.child[1])
+        var_name, pos, attribute = self.proc_var(node.child[1])
         self.variable_manager.add_variable(self.scope_manager.cur, var_name, tp, pos)
         self.proc_init_value(node.child[2], var_name)
         return TYPE(tp), var_name
@@ -414,7 +463,7 @@ class Semantic:
             bool_value = self.proc_bool_value(node.child[0])
             return Variable(TYPE.bool, bool_value)
         elif node.child[0].data == '变量':
-            var_name, pos = self.proc_var(node.child[0])
+            var_name, pos,_ = self.proc_var(node.child[0])
             if not node.child[1].child[0].is_valid():
                 if not self.var_defined(var_name):
                     return None
@@ -426,7 +475,7 @@ class Semantic:
                 # TODO 处理函数调用结果计算
                 # print('v_obj_list', v_obj_list)
                 func_name = var_name
-                func = self.function_manager.get(func_name)
+                func = self.function_manager.get(func_name, pos)
                 if not func:
                     return None
                 # 确定参数类型是否匹配
@@ -441,11 +490,11 @@ class Semantic:
         if node.child[0].is_valid():
             v_obj = self.proc_factor_exp(node.child[1])
             factor_exp = self.variable_manager.op_variable(factor_exp, node.child[0].data, v_obj, node.child[0].pos)
+
             factor_exp = self.proc_factor_exp_closure(node.child[2], factor_exp)
             return factor_exp
         else:
             return factor_exp
-
 
     def proc_digit(self, node):
         return node.child[0].symbol
@@ -464,7 +513,7 @@ class Semantic:
 
     def proc_param(self, node):
         if node.child[0].data == '标志符':
-            var_name, pos = self.proc_user_symbol(node.child[0])
+            var_name, pos, _ = self.proc_user_symbol(node.child[0])
             scope, v_obj = self.find_near_variable(var_name)
             return v_obj
         elif node.child[0].data == '数字':
@@ -520,14 +569,15 @@ class Semantic:
         return self.variable_manager.find_variable(self.scope_manager.scopes, val_name) != -1
 
     def proc_assign_func(self, node):
-        var_name, pos = self.proc_var(node.child[0])
+        var_name, pos, attribute = self.proc_var(node.child[0])
         # 判断定义
         if node.child[1].child[0].data == '=':
             if not self.var_defined(var_name):
                 err = Error(UndefinedError(var_name), pos)
                 error_manager.add_error(err)
                 return None
-        self.proc_assign_or_func_call(node.child[1], var_name)
+
+        self.proc_assign_or_func_call(node.child[1], var_name, attribute)
 
     def proc_while_loop(self, node):
         self.proc_logic_exp(node.child[2])
@@ -556,7 +606,7 @@ class Semantic:
         self.proc_multi_var_dec_closure(node.child[2], tp)
 
     def proc_multi_var_dec(self, node, tp):
-        var, pos = self.proc_var(node.child[0])
+        var, pos, attr = self.proc_var(node.child[0])
         self.variable_manager.add_variable(self.scope_manager.cur, var, tp, pos)
         self.proc_init_value(node.child[1], var)
 
@@ -564,13 +614,25 @@ class Semantic:
         target_scope, _ = self.variable_manager.find_variable(self.scope_manager.scopes, var_name)
         self.variable_manager.set_variable(target_scope, var_name, v_obj, pos)
 
-    def proc_assign_or_func_call(self, node, var_name):
+    def assign_struct_value(self, var_name, v_obj, attribute, pos):
+        target_scope, _ = self.variable_manager.find_variable(self.scope_manager.scopes, var_name)
+        # self.variable_manager.set_variable(target_scope, var_name, v_obj, pos)
+        self.variable_manager.set_struct_attribute(target_scope, self.scope_manager.scopes,var_name, attribute, v_obj, pos)
+
+    def proc_assign_or_func_call(self, node, var_name, attribute):
         if node.child[0].data == '=':
             v_obj = self.proc_rvalue(node.child[1])
             if v_obj:
-                self.assign_value(var_name, v_obj, node.child[0].pos)
+                if attribute is None:
+                    self.assign_value(var_name, v_obj, node.child[0].pos)
+                else:
+                    # TODO
+                    self.assign_struct_value(var_name, v_obj, attribute, node.child[0].pos)
         else:
-            self.proc_param_list(node.child[1])
+            # judge
+            func = self.function_manager.get(var_name, node.child[0].pos)
+            if func:
+                self.proc_param_list(node.child[1])
 
     def proc_dec_closure(self, node, param_list):
         if node.child[0].is_valid():
@@ -641,7 +703,7 @@ class Semantic:
         if node.child[0].is_valid():
             # print(node)
             var_type, var_name = self.proc_struct_field_var(node.child[0])
-            var_list.append((var_type, var_name))
+            var_list.append((TYPE(var_type), var_name))
             self.proc_struct_filed_list(node.child[1], var_list)
             return var_list
         return var_list
@@ -659,8 +721,17 @@ class Semantic:
             print(f'[WARNING] struct {var_name} variable {defined_vars} have the same name as existing variable')
 
     def proc_struct_field_stmt(self, node):
-        var_name, pos = self.proc_user_symbol(node.child[1])
-        self.proc_struct_field(node.child[3], var_name, pos)
+        var_name, pos, attr = self.proc_user_symbol(node.child[1])
+        self.proc_struct_impl(node.child[2], var_name, pos)
+
+    def proc_struct_impl(self, node, var_name, pos):
+        if node.child[0].data == '{':
+            # 标识定义结构体
+            self.proc_struct_field(node.child[1], var_name, pos)
+        else:
+            struct_var_name = node.child[0].symbol
+            # TODO 应该在这里实现插入
+            self.variable_manager.add_variable(self.scope_manager.cur, struct_var_name, TYPE.struct, pos, var_name)
 
 
 def get_easy_tokens():
@@ -703,11 +774,9 @@ error_manager = ErrorManager()
 if __name__ == '__main__':
     # test()
     lex = Lex()
+    tokens = get_test_tokens("./test_case/error_test4.cpp")
 
-    tokens = get_test_tokens("../lexical/easy_test.cpp")
-    print(tokens)
     grammar = Gram("../grammar/cfg_resource/cfg_v8.txt")
-
     grammar.parse(tokens, pr=True)
     #
     semantic = Semantic(grammar.tree)

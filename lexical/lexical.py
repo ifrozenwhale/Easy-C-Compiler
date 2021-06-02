@@ -3,7 +3,7 @@ class Lex:
     def __init__(self):
         self.other_char_list = ['\n', '\t']
         self.border_char_list = {'+', '-', '*',
-                                 '(', ')', '/', '{', '}', ';', ',', ' ', '\n', '\t'}
+                                 '(', ')', '/', '{', '}', ';', ',', ' ', '\n', '\t', '.'}
         self.reserved_words_list = ['int', 'bool', 'void', 'return','struct',
                                     'while', 'if', 'else', 'put', 'get', 'true', 'false']
 
@@ -129,9 +129,15 @@ class Lex:
                         self.insert_token('id', idx)
                         return 0
                 else:
-                    self.print_error("invalid variable name")
-                    exit(-1)
-                    return -1
+                    # UPDATE
+                    # 处理 struct，用.来标识
+                    if c == '.':
+                        self.insert_token(c, '')
+                        return 0
+                    else:
+                        self.print_error("invalid variable name {}".format(c))
+                        # exit(-1)
+                        return -1
 
         def case2(tk, c):
             if c.isdigit():
