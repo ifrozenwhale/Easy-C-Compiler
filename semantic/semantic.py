@@ -11,7 +11,7 @@ from lexical import Lex
 from copy import deepcopy
 from log import Log
 from grammar import Gram, get_test_tokens
-
+from error import *
 logger = Log("./logs/log.txt")
 pd.set_option('display.max_columns', None)
 # 显示所有行
@@ -38,125 +38,6 @@ class TYPE(Enum):
 
     def __repr__(self):
         return 'TYPE.' + self._value_
-
-
-class ErrorType(Enum):
-    undefined = 0  # ok
-    already_defined_var = 1  # ok
-    already_defined_func = 2  # ok
-    uninitialized_var = 3  # ok
-    unsupported_operation = 4  # ok
-    incompatible_type = 5  # ok
-    mismatched_params = 6  # ok
-    mismatched_type = 7  # ok
-
-
-class UndefinedError:
-    def __init__(self, var_name):
-        self.var_name = var_name
-
-    def __repr__(self):
-        return f"undefined variable {self.var_name}"
-
-
-class UndefinedFuncError:
-    def __init__(self, func_name):
-        self.func_name = func_name
-
-    def __repr__(self):
-        return f"undefined function {self.func_name}"
-
-
-class AlreadyDefinedVar:
-    def __init__(self, var_name, first_defined_position):
-        self.var_name = var_name
-        self.first_defined_position = first_defined_position
-
-    def __repr__(self):
-        return f"variable {self.var_name} is already defined in position {self.first_defined_position}"
-
-
-class AlreadyDefinedFunc:
-    def __init__(self, func_name, first_defined_position):
-        self.func_name = func_name
-        self.first_defined_position = first_defined_position
-
-    def __repr__(self):
-        return f"function {self.func_name} is already defined in position {self.first_defined_position}"
-
-
-class UninitializedVar:
-    def __init__(self, var_name):
-        self.var_name = var_name
-
-    def __repr__(self):
-        return f"variable {self.var_name} is uninitialized but used here"
-
-
-class UnsupportedOperation:
-    def __init__(self, var_name, var_type, op):
-        self.var_name = var_name
-        self.var_type = var_type
-        self.op = op
-
-    def __repr__(self):
-        return f"variable {self.var_name} (self.var_type) don't support operation {self.op}"
-
-
-class IncompatibleType:
-    def __init__(self, var_name, var_type, rvalue_type):
-        self.var_name = var_name
-        self.var_type = var_type
-        self.rvalue_type = rvalue_type
-
-    def __repr__(self):
-        return f"variable {self.var_name} ({self.var_type}) cannot be assigned with type {self.rvalue_type}"
-
-
-class MismatchedParams:
-    def __init__(self, func_name, params, expected_params):
-        self.func_name = func_name
-        self.params = params
-        self.expected_params = expected_params
-
-    def __repr__(self):
-        return f"function {self.func_name} received params ({self.params}), expected params {self.expected_params}"
-
-
-class MismatchedType:
-    def __init__(self, var_type1, var_type2, op):
-        self.var_type1 = var_type1
-        self.var_type2 = var_type2
-        self.op = op
-
-    def __repr__(self):
-        return f"variable ({self.var_type1}) and variable ({self.var_type2}) don't " \
-               f"support operation {self.op} "
-
-
-class Error:
-    def __init__(self, err, position: tuple):
-        self.err = err
-        self.position = position
-
-    def __repr__(self):
-        return f"[ERROR] at position {self.position}, caused by: {str(self.err)}"
-
-
-class ErrorManager:
-    def __init__(self):
-        self.errors = []
-
-    def add_error(self, err: Error):
-        self.errors.append(err)
-
-    def count(self):
-        return len(self.errors)
-
-    def print(self):
-        for err in self.errors:
-            print(err)
-
 
 class Variable:
     def __init__(self, tp=None, val=None, id=None, pos=(0, 0)):
@@ -217,9 +98,6 @@ class VariableManager:
         for scope in scope_list[::-1]:
             if self.contains(scope, v):
                 return scope, self.variables[scope][v]
-
-        # err = Error(UndefinedError(v), (0, 1))
-        # error_manager.add_error(err)
         return -1
 
     def add_variable(self, scope, v, tp, pos=(0, 0)):
@@ -246,6 +124,16 @@ class VariableManager:
             # print("{} not initialized\n".format(v_obj))
             return -1
         old_v.val = v_obj.val
+
+    def check_struct_field(self, scope, struct_name):
+        if not self.contains(scope, struct_name):
+            return None
+        struct_field_vars = self.variables[scope][struct_name]
+        defined_vars = []
+        for var_obj in struct_field_vars:
+            if self.contains(scope, var_obj[1][0]):
+                defined_vars.append(var_obj)
+        return defined_vars
 
     def op_variable(self, x, op, y, pos):
         err_type = None
@@ -403,7 +291,6 @@ class Semantic:
     def proc_program(self, root):
         self.scope_manager.set_global(0)
         self.scope_manager.go_scope()
-
         self.proc_func_or_dec_list(root.child[0])
 
     def proc_func_or_dec_list(self, node):
@@ -454,9 +341,7 @@ class Semantic:
 
             # 要进入代码段了
             self.proc_func_impl(node.child[3])
-        elif node.child[0].data == '{':
-            # 表示处理结构体数据
-            self.proc_struct_field(node.child[1], var, node.child[0].pos)
+
         else:
             # print(node.child)
             self.proc_global_var_closure(node.child[0], tp)
@@ -502,8 +387,6 @@ class Semantic:
     def proc_exp(self, node):
         v_obj = self.proc_factor_item(node.child[0])
         v_item = self.proc_item(node.child[1], v_obj)
-        # TODO 处理因子和项
-        # print('v_obj', v_obj, 'item', v_item)
         return v_item
 
     def proc_factor_item(self, node):
@@ -538,7 +421,6 @@ class Semantic:
 
                 _, v_obj = self.find_near_variable(var_name)
                 return v_obj
-
             else:
                 v_obj_list = self.proc_func_call_param(node.child[1])
                 # TODO 处理函数调用结果计算
@@ -563,6 +445,7 @@ class Semantic:
             return factor_exp
         else:
             return factor_exp
+
 
     def proc_digit(self, node):
         return node.child[0].symbol
@@ -750,7 +633,7 @@ class Semantic:
         var_list = self.proc_struct_filed_list(node.child[0], var_list)
         # print(var_list)
         # 得到了结构体域变proc_struct_field量列表后，加入到变量表中
-        self.variable_manager.add_variable(self.scope_manager.cur, var_name, TYPE.struct, pos);
+        self.variable_manager.add_variable(self.scope_manager.cur, var_name, TYPE.struct, pos)
         # 对于结构体而言，值是多个变量
         self.set_struct_field(var_name, var_list, pos)
 
@@ -770,12 +653,14 @@ class Semantic:
 
     def set_struct_field(self, var_name, var_list, pos):
         self.variable_manager.set_struct_field(self.scope_manager.cur, var_name, var_list, pos)
+        #     可以查询是否出现冲突
+        defined_vars = self.variable_manager.check_struct_field(self.scope_manager.cur, var_name)
+        if defined_vars:
+            print(f'[WARNING] struct {var_name} variable {defined_vars} have the same name as existing variable')
 
     def proc_struct_field_stmt(self, node):
         var_name, pos = self.proc_user_symbol(node.child[1])
         self.proc_struct_field(node.child[3], var_name, pos)
-
-    
 
 
 def get_easy_tokens():

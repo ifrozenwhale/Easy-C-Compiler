@@ -10,6 +10,8 @@ struct Student{
     bool gender;
 };
 int main(){
-
+    struct Student stu;
+    stu.id = 1;
+    stu.gender = false;
     return 0;
 }
