@@ -632,7 +632,16 @@ class Semantic:
             # judge
             func = self.function_manager.get(var_name, node.child[0].pos)
             if func:
-                self.proc_param_list(node.child[1])
+                # 判断参数类型是否一致
+                v_obj_list = self.proc_param_list(node.child[1])
+                if not func:
+                    return None
+                # 确定参数类型是否匹配
+                params_list = [e.type for e in v_obj_list]
+
+                if not self.function_manager.params_match(var_name, params_list, node.child[0].pos):
+                    # print(f"{func_name} parameter mis match")
+                    return None
 
     def proc_dec_closure(self, node, param_list):
         if node.child[0].is_valid():
@@ -774,7 +783,7 @@ error_manager = ErrorManager()
 if __name__ == '__main__':
     # test()
     lex = Lex()
-    tokens = get_test_tokens("./test_case/error_test4.cpp")
+    tokens = get_test_tokens("./test_case/error_test6.cpp")
 
     grammar = Gram("../grammar/cfg_resource/cfg_v8.txt")
     grammar.parse(tokens, pr=True)
