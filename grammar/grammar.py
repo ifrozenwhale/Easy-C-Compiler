@@ -165,6 +165,7 @@ class Gram:
         self.init_first_s()
         self.init_table()
         self.tree = Tree()
+        self.err = False
 
     def print_tree(self, save=None):
         self.tree.print()
@@ -371,6 +372,7 @@ class Gram:
                     stack.pop()
                 else:
                     logger.error(f'at line {tokens[i][2]},  expected {t} but received {tokens[i][0]}, move pointer')
+                    self.err = True
                     stack.pop()
             else:
                 ich = tokens[i][0]
@@ -409,11 +411,13 @@ class Gram:
         return res
     def proc_parse_error(self, token, nt):
         # [(]<参数声明>[)]<函数实现>
+        self.err = True
         if nt == '赋初值' and token[0] == '(':
             logger.error(
                 f'at position {token[2]}, when parsing {nt}, expected {self.get_valid_token(nt)}, but received [{token[0]}] (Nested definitions are not allowed)')
         else:
-            logger.error(f'at position {token[2]}, when parsing {nt}, expected {self.get_valid_token(nt)}, but received [{token[0]}]')
+            logger.error(f'at position {token[2]}, when parsing {nt}, expected {self.get_valid_token(nt)}, but '
+                         f'received [{token[0]}]')
 
 
 

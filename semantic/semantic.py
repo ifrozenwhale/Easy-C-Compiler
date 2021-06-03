@@ -29,6 +29,7 @@ def print_line(info):
     extra_star = (100 - n) % 2
     print('*' * nstar, info, '*' * (nstar + extra_star))
 
+
 class TYPE(Enum):
     bool = "bool"
     int = "int"
@@ -57,8 +58,8 @@ class Variable:
     def __mul__(self, other):
         return Variable(self.type, self.val * other.val)
 
-    def __truediv__(self, other):
-        return Variable(self.type, self.val / other.val)
+    def __floordiv__(self, other):
+        return Variable(self.type, self.val // other.val)
 
     def __eq__(self, other):
         return Variable(TYPE.bool, self.val == other.val)
@@ -74,10 +75,13 @@ class Variable:
 
     def __ge__(self, other):
         return Variable(TYPE.bool, self.val >= other.val)
-    def __or__(self, other):
+
+    def logic_or(self, other):
         return Variable(TYPE.bool, self.val or other.val)
-    def __and__(self, other):
+
+    def logic_and(self, other):
         return Variable(TYPE.bool, self.val and other.val)
+
     def __repr__(self):
         vid = self.id + ',' if self.id else ''
         st = ' ' + self.struct_type + ',' if self.struct_type else ''
@@ -85,8 +89,13 @@ class Variable:
 
     def bit_and(self, other):
         return Variable(TYPE.int, self.val & other.val)
+
     def bit_or(self, other):
         return Variable(TYPE.int, self.val | other.val)
+
+    def logic_not(self):
+        return Variable(TYPE.bool, not self.val)
+
 
 class VariableManager:
     def __init__(self):
@@ -110,7 +119,7 @@ class VariableManager:
                 return scope, self.variables[scope][v]
         return -1
 
-    def add_variable(self, scope, v, tp, pos=(0, 0),struct_type=None):
+    def add_variable(self, scope, v, tp, pos=(0, 0), struct_type=None):
         if self.contains(scope, v):
             old = self.variables[scope][v]
             err = Error(AlreadyDefinedVar(v, old.pos), pos)
@@ -118,7 +127,7 @@ class VariableManager:
             return self.variables[scope][v]
         if scope not in self.variables:
             self.variables[scope] = {}
-        self.variables[scope][v] = Variable(tp=TYPE(tp), id=v, pos=pos,struct_type=struct_type)
+        self.variables[scope][v] = Variable(tp=TYPE(tp), id=v, pos=pos, struct_type=struct_type)
         return None
 
     def set_variable(self, scope, v, v_obj, pos):
@@ -134,7 +143,6 @@ class VariableManager:
             # print("{} not initialized\n".format(v_obj))
             return -1
         old_v.val = v_obj.val
-
 
     def check_struct_field(self, scope, struct_name):
         if not self.contains(scope, struct_name):
@@ -186,6 +194,8 @@ class VariableManager:
             return x - y
         elif op == '*':
             return x * y
+        elif op == '/':
+            return x // y
         elif op == '==':
             return x == y
         elif op == '<':
@@ -199,9 +209,11 @@ class VariableManager:
         elif op == '<>':
             return not (x == y)
         elif op == '||':
-            return x or y
+            print('hello')
+            print(x, y, x.logic_or(y))
+            return x.logic_or(y)
         elif op == '&&':
-            return x and y
+            return x.logic_and(y)
         elif op == '&':
             return x.bit_and(y)
         elif op == '|':
@@ -237,9 +249,13 @@ class VariableManager:
         error_manager.add_error(err)
         return
 
+    def op_variable_single(self, op, v_obj, pos):
+        if op == '!':
+            return v_obj.logic_not()
+
 
 class Function:
-    def __init__(self, ret_type, name, params,pos=None):
+    def __init__(self, ret_type, name, params, pos=None):
         self.ret_type = ret_type
         self.name = name
         self.params = params
@@ -436,6 +452,7 @@ class Semantic:
     def proc_exp(self, node):
         v_obj = self.proc_factor_item(node.child[0])
         v_item = self.proc_item(node.child[1], v_obj)
+
         return v_item
 
     def proc_factor_item(self, node):
@@ -463,13 +480,17 @@ class Semantic:
             bool_value = self.proc_bool_value(node.child[0])
             return Variable(TYPE.bool, bool_value)
         elif node.child[0].data == '变量':
-            var_name, pos,_ = self.proc_var(node.child[0])
+            var_name, pos, attr = self.proc_var(node.child[0])
             if not node.child[1].child[0].is_valid():
                 if not self.var_defined(var_name):
                     return None
-
-                _, v_obj = self.find_near_variable(var_name)
-                return v_obj
+                if attr is None:
+                    _, v_obj = self.find_near_variable(var_name)
+                    return v_obj
+                else:
+                    _, v_obj = self.find_near_variable(var_name)
+                    v_attr = v_obj.val[attr]
+                    return v_attr
             else:
                 v_obj_list = self.proc_func_call_param(node.child[1])
                 # TODO 处理函数调用结果计算
@@ -490,7 +511,6 @@ class Semantic:
         if node.child[0].is_valid():
             v_obj = self.proc_factor_exp(node.child[1])
             factor_exp = self.variable_manager.op_variable(factor_exp, node.child[0].data, v_obj, node.child[0].pos)
-
             factor_exp = self.proc_factor_exp_closure(node.child[2], factor_exp)
             return factor_exp
         else:
@@ -617,7 +637,8 @@ class Semantic:
     def assign_struct_value(self, var_name, v_obj, attribute, pos):
         target_scope, _ = self.variable_manager.find_variable(self.scope_manager.scopes, var_name)
         # self.variable_manager.set_variable(target_scope, var_name, v_obj, pos)
-        self.variable_manager.set_struct_attribute(target_scope, self.scope_manager.scopes,var_name, attribute, v_obj, pos)
+        self.variable_manager.set_struct_attribute(target_scope, self.scope_manager.scopes, var_name, attribute, v_obj,
+                                                   pos)
 
     def proc_assign_or_func_call(self, node, var_name, attribute):
         if node.child[0].data == '=':
@@ -652,7 +673,8 @@ class Semantic:
 
     def proc_logic_exp(self, node):
         if node.child[0].data == '!':
-            self.proc_exp(node.child[1])
+            v_obj = self.proc_exp(node.child[1])
+            self.variable_manager.op_variable_single('!', v_obj, node.child[0].data)
         else:
             v_obj1 = self.proc_exp(node.child[0])
             op, pos = self.proc_logic_op(node.child[1])
@@ -783,14 +805,17 @@ error_manager = ErrorManager()
 if __name__ == '__main__':
     # test()
     lex = Lex()
-    tokens = get_test_tokens("./test_case/error_test6.cpp")
+    tokens = get_test_tokens("./test_case/easy_test.cpp")
 
     grammar = Gram("../grammar/cfg_resource/cfg_v8.txt")
     grammar.parse(tokens, pr=True)
-    #
-    semantic = Semantic(grammar.tree)
-    semantic.run()
+    if grammar.err:
+        print('grammar error.')
 
-    semantic.print_variable_table()
-    semantic.print_function_table()
-    error_manager.print()
+    else:
+        semantic = Semantic(grammar.tree)
+        semantic.run()
+
+        semantic.print_variable_table()
+        semantic.print_function_table()
+        error_manager.print()
