@@ -1,0 +1,11 @@
+<Ei>.i :: <T>.s
+<E>.s :: <Ei>.i
+<Ei>.s :: <Ei>.i
+<Ti>.i :: <F>.s
+<T>.s :: <Ti>.s
+<Ti>.i :: <Ti>.i[*]<F>.s
+<Ti>.s :: <Ti>.i
+<D>.s :: <E>.s
+<F>.s :: [id].val
+<F>.s :: [digit].val
+

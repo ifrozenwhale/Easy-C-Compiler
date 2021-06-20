@@ -1,0 +1,58 @@
+label  ,       ,       , main  
+goto_save,       ,       , main_body_6
+exit   ,       ,       , exit_6
+label  ,       ,       , main_body_6
+=      , 0     ,       , -4    
+=      , 0     ,       , -8    
+=      , 0     ,       , -12   
+=      , 0     ,       , -16   
+=      , 0     ,       , -20   
+li     , 3333  ,       , temp0 
+=      , temp0 ,       , -4    
+li     , 6666  ,       , temp1 
+=      , temp1 ,       , -8    
+li     , 9999  ,       , temp2 
+=      , temp2 ,       , -12   
+li     , 1     ,       , temp3 
+=      , temp3 ,       , -20   
+label  ,       ,       , while_160
+lv     , -20   ,       , temp4 
+li     , 0     ,       , temp5 
+>      , temp4 , temp5 , while_block_160
+goto   ,       ,       , EXIT_160
+label  ,       ,       , while_block_160
+lv     , -20   ,       , temp7 
+li     , 1     ,       , temp8 
+==     , temp7 , temp8 , if_195
+goto   ,       ,       , exit_195
+label  ,       ,       , if_195
+lv     , -4    ,       , temp10
+=      , temp10,       , -16   
+goto   ,       ,       , exit_195
+label  ,       ,       , exit_195
+lv     , -20   ,       , temp11
+li     , 2     ,       , temp12
+==     , temp11, temp12, if_261
+goto   ,       ,       , exit_261
+label  ,       ,       , if_261
+lv     , -8    ,       , temp14
+=      , temp14,       , -16   
+goto   ,       ,       , exit_261
+label  ,       ,       , exit_261
+lv     , -20   ,       , temp15
+li     , 3     ,       , temp16
+==     , temp15, temp16, if_327
+goto   ,       ,       , exit_327
+label  ,       ,       , if_327
+lv     , -12   ,       , temp18
+=      , temp18,       , -16   
+goto   ,       ,       , exit_327
+label  ,       ,       , exit_327
+lv     , -16   ,       , temp19
+put    ,       ,       , temp19
+lv     , -20   ,       , temp20
+get    ,       ,       , -20   
+goto   ,       ,       , while_160
+label  ,       ,       , EXIT_160
+li     , 0     ,       , temp21
+return ,       ,       , temp21

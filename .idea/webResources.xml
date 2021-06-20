@@ -10,6 +10,7 @@
             <path value="file://$PROJECT_DIR$/lexical" />
             <path value="file://$PROJECT_DIR$/semantic" />
             <path value="file://$PROJECT_DIR$/utils" />
+            <path value="file://$PROJECT_DIR$/instruction" />
           </resourceRoots>
         </entryData>
       </entry>

@@ -1,0 +1,4 @@
+void get int
+void get2 int int
+void get3 int int int
+void put int

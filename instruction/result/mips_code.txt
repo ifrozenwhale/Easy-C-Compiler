@@ -1,0 +1,97 @@
+.data
+prompt: .asciiz "enter an integer : "
+end: .asciiz "\n"
+
+.text
+
+main:
+jal main_body_6
+li $v0 10
+syscall
+
+main_body_6:
+
+move $s0 $ra
+sw $zero -4($sp)
+sw $zero -8($sp)
+sw $zero -12($sp)
+sw $zero -16($sp)
+sw $zero -20($sp)
+li $t0 3333
+sw $t0 -4($sp)
+li $t0 6666
+sw $t0 -8($sp)
+li $t0 9999
+sw $t0 -12($sp)
+li $t0 1
+sw $t0 -20($sp)
+
+while_160:
+lw $t0 -20($sp)
+li $t1 0
+bgt $t0 $t1 while_block_160
+j EXIT_160
+
+while_block_160:
+lw $t0 -20($sp)
+li $t1 1
+beq $t0 $t1 if_195
+j exit_195
+
+if_195:
+lw $t0 -4($sp)
+sw $t0 -16($sp)
+j exit_195
+
+exit_195:
+lw $t0 -20($sp)
+li $t1 2
+beq $t0 $t1 if_261
+j exit_261
+
+if_261:
+lw $t0 -8($sp)
+sw $t0 -16($sp)
+j exit_261
+
+exit_261:
+lw $t0 -20($sp)
+li $t1 3
+beq $t0 $t1 if_327
+j exit_327
+
+if_327:
+lw $t0 -12($sp)
+sw $t0 -16($sp)
+j exit_327
+
+exit_327:
+lw $t0 -16($sp)
+move $a0 $t0
+jal write
+lw $t0 -20($sp)
+jal read
+sw $v0 -20($sp)
+j while_160
+
+EXIT_160:
+li $t1 0
+move $v0 $t1
+move $ra $s0
+jr $ra
+
+read:
+li $v0 4
+la $a0 prompt
+syscall
+li $v0 5
+syscall
+jr $ra
+
+write:
+li $v0 1
+syscall
+li $v0 4
+la $a0 end
+syscall
+jr $ra

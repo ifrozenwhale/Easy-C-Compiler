@@ -9,7 +9,6 @@ from log import Log
 from lexical import Lex
 from copy import deepcopy
 
-
 logger = Log("./logs/log.txt")
 pd.set_option('display.max_columns', None)
 # 显示所有行
@@ -59,11 +58,15 @@ def get_test_tokens(filename='../lexical/full_test.cpp'):
 
 
 class Node:
+    cur_id = 0
+
     def __init__(self, data, symbol=None, pos=None):
         self.data = data
         self.child = []
         self.symbol = symbol
         self.pos = pos
+        self.id = Node.cur_id + 1
+        Node.cur_id += 1
 
     def __repr__(self):
         return "data: {} symbol: {} child_size: {}".format(self.data, self.symbol, len(self.child))
@@ -75,8 +78,8 @@ class Node:
         return len(self.child) == 0
 
     def is_valid(self):
-
         return self.data != '#'
+
 
 class Tree:
     def __init__(self, root=None):
@@ -385,7 +388,6 @@ class Gram:
                 if list(table_item)[0] == 'synch':
                     self.proc_parse_error(tokens[i], t)
                     # logger.error(f'at line {tokens[i][2]}, cannot parse {t} when receiving {ich}, pop {t}')
-
                     stack.pop()
                     continue
                 stack.pop()
@@ -409,6 +411,7 @@ class Gram:
                 res.append(k)
 
         return res
+
     def proc_parse_error(self, token, nt):
         # [(]<参数声明>[)]<函数实现>
         self.err = True
@@ -418,7 +421,6 @@ class Gram:
         else:
             logger.error(f'at position {token[2]}, when parsing {nt}, expected {self.get_valid_token(nt)}, but '
                          f'received [{token[0]}]')
-
 
 
 if __name__ == '__main__':
@@ -438,7 +440,7 @@ if __name__ == '__main__':
 
     ############################
     # 2. 基于实验 1 给出 token_list
-    tokens = get_test_tokens("../lexical/struct_test.cpp")
+    tokens = get_test_tokens("../lexical/error_demo.cpp")
     # 打印源程序的 tokens
     print(tokens)
 
